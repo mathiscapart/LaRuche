@@ -19,6 +19,12 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           recursive: true
+      - name: Bandit
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install bandit
+      - run: bandit -r honeypots/ pipeline/ dashboard/ -ll -ii
 
   build:
     needs: lint
