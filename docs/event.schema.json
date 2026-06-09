@@ -65,15 +65,43 @@
       "properties": {
         "username": { "type": "string" },
         "password": { "type": "string" },
-        "method": {
+        "auth_method": {
           "type": "string",
-          "description": "SSH: password | publickey"
+          "enum": ["password", "publickey", "keyboard-interactive"],
+          "description": "SSH: méthode d'authentification tentée"
         },
-        "key_fingerprint": { "type": "string" },
+        "key_fingerprint": {
+          "type": "string",
+          "description": "SSH: fingerprint de la clé publique présentée"
+        },
         "command": { "type": "string" },
+        "target_user": {
+          "type": "string",
+          "description": "SSH: utilisateur visé par une escalade (su/sudo)"
+        },
+        "command_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "SSH: nombre de commandes jouées dans la session"
+        },
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "SSH: séquence des commandes de la session"
+        },
+        "session_fingerprint": {
+          "type": "string",
+          "description": "SSH: hash de la séquence de commandes (regroupement de campagnes)"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Durée de la session en millisecondes"
+        },
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"]
+          "enum": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+          "description": "HTTP: verbe de la requête"
         },
         "path": { "type": "string" },
         "user_agent": { "type": "string" },

@@ -1,0 +1,3 @@
+# Dépendances runtime du honeypot SSH (volontairement minimales pour réduire
+# la surface d'attaque de l'image).
+asyncssh==2.18.0
