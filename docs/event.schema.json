@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event.schema.json",
+  "version": "1.0.0",
+  "title": "HoneypotEvent",
+  "type": "object",
+  "required": ["id", "timestamp", "service", "src_ip", "event_type", "payload"],
+
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4 généré à la création de l'événement"
+    },
+
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC — ex: 2024-06-03T08:45:12.123Z"
+    },
+
+    "service": {
+      "type": "string",
+      "enum": ["ssh", "http", "ftp"],
+      "description": "Service honeypot source"
+    },
+
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "connection",
+        "auth_attempt",
+        "auth_success",
+        "command",
+        "file_download",
+        "file_upload",
+        "request",
+        "credential_attempt",
+        "canary_triggered",
+        "disconnection"
+      ]
+    },
+
+    "src_ip": {
+      "type": "string",
+      "format": "ipv4",
+      "description": "IP source de l'attaquant"
+    },
+
+    "src_port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+
+    "session_id": {
+      "type": "string",
+      "description": "Identifiant de session — regroupe tous les events d'une même connexion"
+    },
+
+    "payload": {
+      "type": "object",
+      "description": "Données spécifiques au service et à l'event_type",
+
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "method": {
+          "type": "string",
+          "description": "SSH: password | publickey"
+        },
+        "key_fingerprint": { "type": "string" },
+        "command": { "type": "string" },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"]
+        },
+        "path": { "type": "string" },
+        "user_agent": { "type": "string" },
+        "body": { "type": "string", "maxLength": 4096 },
+        "headers": { "type": "object" },
+        "filename": { "type": "string" },
+        "trap": { "type": "string", "description": "Nom du canary déclenché" }
+      }
+    },
+
+    "classification": {
+      "type": "object",
+      "description": "Rempli par Wazuh Manager après ingestion",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "BRUTE_FORCE",
+            "CREDENTIAL_STUFFING",
+            "EXPLOIT_ATTEMPT",
+            "RECON",
+            "CANARY_TRIGGERED",
+            "BOTNET_C2",
+            "UNKNOWN"
+          ]
+        },
+        "profile": {
+          "type": "string",
+          "enum": ["bot", "bruteforcer", "human", "scanner"],
+          "description": "4 profils définis en B3"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "ex: ['log4shell', 'known_scanner_ua', 'common_password']"
+        }
+      }
+    },
+
+    "enrichment": {
+      "type": "object",
+      "description": "Rempli par l'enricher (pipeline Python) après ingestion",
+      "properties": {
+        "country_code": { "type": "string", "maxLength": 2 },
+        "country_name": { "type": "string" },
+        "city": { "type": "string" },
+        "asn": { "type": "string" },
+        "org": { "type": "string" },
+        "is_tor": { "type": "boolean" },
+        "abuse_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "greynoise": {
+          "type": "string",
+          "enum": ["malicious", "benign", "unknown"]
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "honeypot_host": {
+          "type": "string",
+          "description": "Hostname de la VM honeypot"
+        },
+        "schema_version": { "type": "string", "const": "1.0.0" }
+      }
+    }
+  },
+
+  "additionalProperties": false
+}
