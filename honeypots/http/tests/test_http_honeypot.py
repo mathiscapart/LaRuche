@@ -68,6 +68,12 @@ def test_all_event_types_conform_to_schema(validator: Draft7Validator) -> None:
             **common,
         ),
         build_event(
+            event_type="auth_success",
+            payload={"method": "POST", "path": "/wp-login.php", "username": "admin", "password": "admin"},
+            classification={"category": "BRUTE_FORCE", "severity": "high", "tags": ["valid_login"]},
+            **common,
+        ),
+        build_event(
             event_type="canary_triggered",
             payload={"method": "GET", "path": "/.env", "trap": "dotenv_canary"},
             classification={"category": "CANARY_TRIGGERED", "severity": "critical", "tags": ["dotenv_canary"]},
@@ -198,3 +204,157 @@ def test_request_event_flags_scanner_and_is_valid(
     assert requests
     assert requests[0]["payload"]["is_scanner"] is True
     _validate(validator, requests[0])
+
+
+# --- anti-détection (réalisme honeypot) -------------------------------------
+def test_404_is_wordpress_themed_not_json(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    r = client.get("/page-inexistante-zzz-12345")
+    assert r.status_code == 404
+    assert r.headers["content-type"].startswith("text/html")
+    assert "WordPress" in r.text
+    # Surtout PAS le tell FastAPI :
+    assert '{"detail"' not in r.text
+
+
+def test_homepage_emulates_wordpress(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Just another WordPress site" in r.text
+    assert 'name="generator" content="WordPress' in r.text
+
+
+def test_wp_json_rest_root(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    data = client.get("/wp-json/").json()
+    assert "wp/v2" in data["namespaces"]
+
+
+def test_link_header_advertises_wp_json(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    link = client.get("/").headers.get("link", "")
+    assert "/wp-json/" in link
+    assert 'rel="https://api.w.org/"' in link
+
+
+def test_login_sets_wordpress_cookie(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    r = client.get("/wp-login.php")
+    assert "wordpress_test_cookie" in r.headers.get("set-cookie", "")
+
+
+# --- faux login / post-auth (hardening) -------------------------------------
+def test_weak_creds_accepted_emits_auth_success(
+    app_client: tuple[TestClient, io.StringIO], validator: Draft7Validator
+) -> None:
+    client, buf = app_client
+    r = client.post(
+        "/wp-login.php", data={"log": "admin", "pwd": "admin"}, headers={"x-forwarded-for": TEST_IP}
+    )
+    assert r.status_code == 302
+    assert r.headers["location"] == "/wp-admin/"
+    assert "wordpress_logged_in" in r.headers.get("set-cookie", "")
+    successes = [e for e in _events(buf) if e["event_type"] == "auth_success"]
+    assert successes and successes[0]["payload"]["username"] == "admin"
+    _validate(validator, successes[0])
+
+
+def test_unknown_creds_rejected_no_auth_success(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, buf = app_client
+    r = client.post(
+        "/wp-login.php",
+        data={"log": "admin", "pwd": "definitely-not-the-password"},
+        headers={"x-forwarded-for": TEST_IP},
+    )
+    assert r.status_code == 200
+    assert "incorrect" in r.text.lower()
+    # On accepte le set faible, PAS n'importe quoi : aucun auth_success ici.
+    assert not [e for e in _events(buf) if e["event_type"] == "auth_success"]
+    # Mais la tentative est bien capturée.
+    assert [e for e in _events(buf) if e["event_type"] == "credential_attempt"]
+
+
+def test_wp_admin_requires_valid_session(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    # Sans cookie : redirigé vers le login.
+    assert client.get("/wp-admin").status_code == 302
+    # Après login réussi (le client httpx garde le cookie) : accès au dashboard.
+    client.post("/wp-login.php", data={"log": "admin", "pwd": "admin"})
+    r = client.get("/wp-admin/")
+    assert r.status_code == 200
+    assert "Dashboard" in r.text
+
+
+def test_wp_user_enumeration(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    users = client.get("/wp-json/wp/v2/users").json()
+    assert any(u["slug"] == "admin" for u in users)
+    # ID inconnu => erreur REST WordPress crédible (pas notre 404 HTML).
+    missing = client.get("/wp-json/wp/v2/users/99")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "rest_user_invalid_id"
+
+
+# --- xmlrpc, énumération, endpoints, assets (hardening) ---------------------
+def test_xmlrpc_post_multicall_captured(
+    app_client: tuple[TestClient, io.StringIO], validator: Draft7Validator
+) -> None:
+    client, buf = app_client
+    body = (
+        '<?xml version="1.0"?><methodCall><methodName>system.multicall</methodName>'
+        "<params><param><value><array><data><value><struct>"
+        "<member><name>methodName</name><value><string>wp.getUsersBlogs</string></value></member>"
+        "<member><name>params</name><value><array><data>"
+        "<value><string>admin</string></value><value><string>secret123</string></value>"
+        "</data></value></member></struct></value></data></array></value></param></params>"
+        "</methodCall>"
+    )
+    r = client.post(
+        "/xmlrpc.php",
+        content=body,
+        headers={"content-type": "text/xml", "x-forwarded-for": TEST_IP},
+    )
+    assert r.status_code == 200
+    assert "faultCode" in r.text  # login XML-RPC refusé, réponse crédible
+    creds = [e for e in _events(buf) if e["event_type"] == "credential_attempt"]
+    assert creds
+    ev = creds[-1]
+    # Le nom de méthode interne ne doit PAS être pris pour le username.
+    assert ev["payload"]["username"] == "admin"
+    assert ev["payload"]["password"] == "secret123"
+    assert ev["classification"]["tags"] == ["xmlrpc_multicall"]
+    _validate(validator, ev)
+
+
+def test_login_error_enumerates_users(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    known = client.post("/wp-login.php", data={"log": "admin", "pwd": "x"})
+    assert "incorrect" in known.text.lower()
+    unknown = client.post("/wp-login.php", data={"log": "ghost_user", "pwd": "x"})
+    assert "unknown username" in unknown.text.lower()
+
+
+def test_common_wordpress_endpoints(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    assert client.get("/wp-cron.php").status_code == 200
+    assert "6.5.2" in client.get("/readme.html").text
+    assert "GNU General Public License" in client.get("/license.txt").text
+    assert "rss" in client.get("/feed/").headers["content-type"]
+    assert client.get("/wp-json/wp/v2/posts").json()[0]["slug"] == "hello-world"
+
+
+def test_x_pingback_header_present(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    assert client.get("/").headers.get("x-pingback", "").endswith("/xmlrpc.php")
+
+
+def test_static_assets_served_but_scripts_404(app_client: tuple[TestClient, io.StringIO]) -> None:
+    client, _ = app_client
+    css = client.get("/wp-admin/css/login.min.css")
+    assert css.status_code == 200
+    assert css.headers["content-type"].startswith("text/css")
+    # Un .php déposé dans uploads ne doit pas être "servi" -> 404 WP.
+    php = client.get("/wp-content/uploads/evil.php")
+    assert php.status_code == 404
+    assert "WordPress" in php.text
