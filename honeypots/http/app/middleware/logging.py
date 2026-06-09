@@ -6,11 +6,14 @@ Sur chaque requête : extrait IP/UA/path/body, lance les détections US-12
 
 from __future__ import annotations
 
+import asyncio
+import random
 from typing import Any
 from urllib.parse import unquote
 
 from fastapi import Request, Response
 
+from app.config import JITTER_MAX_MS, JITTER_MIN_MS
 from app.events.builder import build_event, emit
 from app.middleware import exploit, scanner
 
@@ -25,6 +28,9 @@ def client_ip(request: Request) -> str:
 
 async def log_requests(request: Request, call_next) -> Response:
     """Journalise la requête, détecte scanner + exploit, émet l'event request."""
+    if JITTER_MAX_MS > 0:
+        # Latence réaliste et variable (évite un fingerprint temporel trop régulier).
+        await asyncio.sleep(random.uniform(JITTER_MIN_MS, JITTER_MAX_MS) / 1000)
     body = (await request.body()).decode("utf-8", "replace")[:4096]
     user_agent = request.headers.get("user-agent", "")
     path = request.url.path
