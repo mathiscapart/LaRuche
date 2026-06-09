@@ -15,7 +15,8 @@ Variables reconnues
 - ``SSH_HOSTNAME``             hostname simulé (défaut ``prod-srv-01``)
 - ``SSH_ALLOWED_CREDENTIALS``  couples acceptés ``user:pass,user:pass`` (US-03)
 - ``SSH_TARPIT_SECONDS``       délai sur tentative refusée (défaut ``2.5``)
-- ``SSH_JITTER_MS_MIN/MAX``    jitter anti-fingerprint (défaut ``50``/``300``)
+- ``SSH_JITTER_MS_MIN/MAX``    jitter de base par commande (défaut ``2``/``18`` ms ;
+                               les commandes réseau ajoutent une latence variable)
 - ``SSH_LOG_FILE``             fichier JSONL tail par Filebeat (défaut
                                ``/var/log/honeypot/ssh.jsonl``)
 """
@@ -47,8 +48,8 @@ class Config:
     hostname: str = "prod-srv-01"
     allowed_credentials: list[Credential] = field(default_factory=list)
     tarpit_seconds: float = 2.5
-    jitter_ms_min: int = 50
-    jitter_ms_max: int = 300
+    jitter_ms_min: int = 2
+    jitter_ms_max: int = 18
     log_file: str | None = "/var/log/honeypot/ssh.jsonl"
 
     def is_allowed(self, username: str, password: str) -> bool:
@@ -84,7 +85,7 @@ def load_config() -> Config:
             os.getenv("SSH_ALLOWED_CREDENTIALS", DEFAULT_CREDENTIALS)
         ),
         tarpit_seconds=float(os.getenv("SSH_TARPIT_SECONDS", "2.5")),
-        jitter_ms_min=int(os.getenv("SSH_JITTER_MS_MIN", "50")),
-        jitter_ms_max=int(os.getenv("SSH_JITTER_MS_MAX", "300")),
+        jitter_ms_min=int(os.getenv("SSH_JITTER_MS_MIN", "2")),
+        jitter_ms_max=int(os.getenv("SSH_JITTER_MS_MAX", "18")),
         log_file=log_file or None,
     )

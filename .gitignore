@@ -3,4 +3,5 @@ __pycache__
 .venv*
 .pytest_cache
 .idea
+.ruff_cache
 attacker/wordlist/rockyou.txt
