@@ -31,6 +31,28 @@ from events import EventSink, build_event
 # (réduit le fingerprinting trivial du honeypot).
 SERVER_VERSION = "OpenSSH_9.2p1 Debian-2+deb12u2"
 
+# Commandes qui, sur un vrai serveur, impliquent du réseau/IO et donc une
+# latence sensible et variable. Les autres répondent quasi instantanément :
+# une latence *uniforme* sur toutes les commandes serait elle-même un tell.
+_SLOW_COMMANDS = {
+    "wget", "curl", "apt", "apt-get", "ping", "nmap", "git", "docker",
+    "pip", "pip3", "nslookup", "dig", "host", "scp", "ssh", "systemctl",
+}
+
+
+def _response_latency(line: str, config: Config) -> float:
+    """Latence de réponse simulée en secondes.
+
+    Petite et variable par défaut (round-trip réaliste), nettement plus longue
+    et irrégulière pour les commandes réseau/IO — pour casser toute signature
+    de délai constant tout en restant crédible.
+    """
+    base = random.uniform(config.jitter_ms_min, config.jitter_ms_max) / 1000  # noqa: S311
+    cmd = line.split()[0] if line.split() else ""
+    if cmd in _SLOW_COMMANDS:
+        return base + random.uniform(0.12, 0.85)  # noqa: S311
+    return base
+
 # Corrèle les événements d'auth (côté SSHServer) avec la session shell
 # (côté process_factory), par adresse (host, port) — unique par connexion TCP.
 _REGISTRY: dict[tuple[str, int], SessionRecord] = {}
@@ -116,8 +138,11 @@ class HoneypotServer(asyncssh.SSHServer):
                     {"username": username, "password": password, "auth_method": "password"},
                 )
             return True
-        # US-03 : tarpit sur chaque tentative refusée.
-        await asyncio.sleep(self._config.tarpit_seconds)
+        # US-03 : tarpit sur chaque tentative refusée. Jitteré autour de la
+        # valeur configurée : un délai *fixe* serait lui-même une signature de
+        # honeypot (le vrai OpenSSH varie autour de ~2,5s).
+        delay = self._config.tarpit_seconds * random.uniform(0.82, 1.18)  # noqa: S311
+        await asyncio.sleep(delay)
         return False
 
     def validate_public_key(self, username: str, key: asyncssh.SSHKey) -> bool:
@@ -182,9 +207,8 @@ async def _handle_command(
     line = raw_line.strip()
     record.profiler.record(line, time.monotonic())
 
-    # US-02 : jitter aléatoire anti-timing fingerprint.
-    jitter = random.uniform(config.jitter_ms_min, config.jitter_ms_max) / 1000  # noqa: S311
-    await asyncio.sleep(jitter)
+    # US-02 : latence réaliste par commande (anti-timing fingerprint).
+    await asyncio.sleep(_response_latency(line, config))
 
     tokens = line.split()
     cmd = tokens[0] if tokens else ""
@@ -213,22 +237,18 @@ async def _handle_command(
         record.shell.escalate_to_root()
         return "", should_exit
 
-    # `sudo <cmd>` (hors escalade) : on exécute la commande sous-jacente.
-    exec_line = line
-    if cmd == "sudo" and len(tokens) > 1:
-        exec_line = line.split(" ", 1)[1]
-
-    # US-04 : changement de mot de passe simulé.
-    if exec_line.split()[:1] == ["passwd"]:
+    # US-04 : changement de mot de passe simulé (direct ou via sudo).
+    if tokens[:1] == ["passwd"] or tokens[:2] == ["sudo", "passwd"]:
         return "passwd: password updated successfully", should_exit
 
-    return run_command(record.shell, exec_line), should_exit
+    # `sudo`, `cd`, etc. sont gérés dans l'émulateur (commands.py).
+    return run_command(record.shell, line), should_exit
 
 
 def _login_banner(record: SessionRecord) -> str:
     return (
-        "Linux prod-srv-01 5.10.0-28-amd64 #1 SMP Debian 5.10.209-2 "
-        "(2024-01-31) x86_64\n\n"
+        "Linux prod-srv-01 6.1.0-21-amd64 #1 SMP PREEMPT_DYNAMIC "
+        "Debian 6.1.90-1 (2024-05-03) x86_64\n\n"
         "The programs included with the Debian GNU/Linux system are free software;\n"
         "the exact distribution terms for each program are described in the\n"
         "individual files in /usr/share/doc/*/copyright.\n\n"
