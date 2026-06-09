@@ -1,0 +1,32 @@
+# Stack honeypot LaRuche.
+# Les services écrivent leurs événements en JSON Lines (stdout + fichier),
+# collectés par Filebeat vers le SIEM (Wazuh) — pas de broker intermédiaire.
+services:
+  honeypot-ssh:
+    build: ./honeypots/ssh
+    image: qualite863/honeypot-ssh:latest
+    container_name: honeypot-ssh
+    restart: unless-stopped
+    # Deux ports ouverts : 22 (SSH standard, crédibilité) et 2222 (cible des
+    # scripts d'attaque US-27 / DMZ US-20). Les deux pointent vers le honeypot
+    # qui écoute en interne sur 2222 (port non privilégié -> process non-root).
+    ports:
+      - "22:2222"
+      - "2222:2222"
+    environment:
+      SSH_BIND_HOST: "0.0.0.0"
+      SSH_BIND_PORT: "2222"
+      SSH_HOSTNAME: "prod-srv-01"
+      # Comptes faibles acceptés (US-03). root est toujours refusé par le code.
+      SSH_ALLOWED_CREDENTIALS: "admin:admin123,admin:P@ssw0rd,ubuntu:ubuntu,user:123456,deploy:deploy2023"
+      SSH_TARPIT_SECONDS: "2.5"
+      SSH_LOG_FILE: "/var/log/honeypot/ssh.jsonl"
+    # Volume pour que Filebeat tail les logs JSONL hors du conteneur.
+    volumes:
+      - ssh_logs:/var/log/honeypot
+    # Durcissement : conteneur sans privilèges supplémentaires.
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  ssh_logs:
