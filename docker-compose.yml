@@ -28,5 +28,43 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  honeypot-ftp:
+    build: ./honeypots/ftp
+    image: qualite863/honeypot-ftp:latest
+    container_name: honeypot-ftp
+    restart: unless-stopped
+    # Port de contrôle exposé sur 21 (FTP standard, crédibilité) et 2121
+    # (cible des scripts d'attaque). Le honeypot écoute en interne sur 2121
+    # (port non privilégié -> process non-root).
+    ports:
+      - "21:2121"
+      - "2121:2121"
+      # Plage de ports passifs (mode PASV) : indispensable pour que LIST / RETR
+      # aboutissent. Doit correspondre à FTP_PASV_MIN..MAX.
+      - "30000-30009:30000-30009"
+    environment:
+      FTP_BIND_HOST: "0.0.0.0"
+      FTP_BIND_PORT: "2121"
+      FTP_HOSTNAME: "prod-srv-01"
+      FTP_BANNER: "(vsFTPd 3.0.3)"
+      # Comptes faibles acceptés. root est toujours refusé par le code.
+      FTP_ALLOWED_CREDENTIALS: "admin:admin123,ftp:ftp,backup:Backup2024,deploy:deploy2023"
+      # Accès anonyme autorisé : maximise la capture de la reconnaissance.
+      FTP_ANONYMOUS: "true"
+      FTP_DECOY_ROOT: "/srv/ftp"
+      FTP_PASV_MIN: "30000"
+      FTP_PASV_MAX: "30009"
+      # IP publique à annoncer en mode passif derrière un NAT/Docker, à régler
+      # selon l'hôte/la DMZ (sinon l'adresse locale de la connexion est utilisée).
+      # FTP_MASQUERADE_ADDRESS: "203.0.113.10"
+      FTP_LOG_FILE: "/var/log/honeypot/ftp.jsonl"
+    # Volume pour que Filebeat tail les logs JSONL hors du conteneur.
+    volumes:
+      - ftp_logs:/var/log/honeypot
+    # Durcissement : conteneur sans privilèges supplémentaires.
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   ssh_logs:
+  ftp_logs:
