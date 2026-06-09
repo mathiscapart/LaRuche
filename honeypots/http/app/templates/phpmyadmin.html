@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>phpMyAdmin</title>
+	<link rel="stylesheet" href="/phpmyadmin/themes/pmahomme/css/theme.css" />
+</head>
+<body class="loginform">
+<div class="container">
+	<h1>Welcome to <bdo dir="ltr">phpMyAdmin</bdo></h1>
+	<form method="post" action="/phpmyadmin/index.php" name="login_form" class="login">
+		<fieldset>
+			<legend>Log in</legend>
+			<div class="item">
+				<label for="input_username">Username:</label>
+				<input type="text" name="pma_username" id="input_username" value="" size="24" />
+			</div>
+			<div class="item">
+				<label for="input_password">Password:</label>
+				<input type="password" name="pma_password" id="input_password" value="" size="24" />
+			</div>
+			<input type="hidden" name="server" value="1" />
+			<input type="submit" name="login" id="input_go" value="Go" />
+		</fieldset>
+	</form>
+	<p>phpMyAdmin 5.1.1</p>
+</div>
+</body>
+</html>
