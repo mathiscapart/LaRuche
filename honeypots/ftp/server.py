@@ -90,15 +90,18 @@ class LoggingFTPHandler(FTPHandler):
         self._emit("file_download", {"filename": os.path.basename(file), "path": virtual})
 
     # --- capture de TOUTES les commandes (LIST / CWD / PWD / ...) ---------
-    def process_command(self, cmd, *args, **kwargs) -> None:
-        arg = args[0] if args else ""
+    # On hooke pre_process_command : on y voit la ligne BRUTE telle que tapée
+    # par l'attaquant (vue FTP, ex. « CWD /backup »), AVANT que pyftpdlib ne
+    # convertisse le chemin FTP en chemin réel du conteneur. On ne fuite donc
+    # jamais la racine leurre, et on capture aussi les commandes refusées
+    # (chemin invalide, droits insuffisants) — précieux pour la reconnaissance.
+    def pre_process_command(self, line, cmd, arg) -> None:
         if cmd.upper() not in _AUTH_COMMANDS:
-            self._record_command(cmd, arg)
-        super().process_command(cmd, *args, **kwargs)
+            self._record_command(cmd, arg or "", line)
+        super().pre_process_command(line, cmd, arg)
 
-    def _record_command(self, cmd: str, arg: str) -> None:
-        upper = cmd.upper()
-        line = f"{upper} {arg}".strip()
+    def _record_command(self, cmd: str, arg: str, raw_line: str) -> None:
+        line = raw_line.strip()
         profiler = getattr(self, "_profiler", None)
         if profiler is not None:
             profiler.record(line, time.monotonic())
@@ -106,7 +109,7 @@ class LoggingFTPHandler(FTPHandler):
         payload: dict = {"command": line}
         if arg:
             payload["path"] = arg
-        self._emit("command", payload, classify_command(upper, arg, cwd))
+        self._emit("command", payload, classify_command(cmd, arg, cwd))
 
     # --- helper d'émission ------------------------------------------------
     def _emit(self, event_type: str, payload: dict, classification: dict | None = None) -> None:
