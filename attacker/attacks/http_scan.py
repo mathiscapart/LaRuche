@@ -1,21 +1,32 @@
 """Professional HTTP scan pipeline (M1SPRO brick B10).
 
-Phases:
-  1. Nikto            — broad vulnerability scan (optional, external tool).
-  2. dirsearch        — content discovery (optional, external tool).
-  3. Fingerprint      — identify the CMS / server / stack (web_fingerprint).
-  4. Targeted attack  — CMS-aware login + recon when a CMS is detected
-                        (web_attacks.attack_cms), otherwise a generic
-                        discovery + credential spray (web_attacks.attack_generic).
+The phases run in a logical order — identify first, discover next, attack last —
+and each one feeds the next instead of running in isolation:
 
-The fingerprint decides phase 4, so the scan adapts to the target instead of
-firing the same payloads everywhere.
+  1. Fingerprint   — identify the CMS / server / stack (web_fingerprint). Cheap
+                     (it reuses the homepage already fetched) and it decides how
+                     every later phase behaves.
+  2. Nikto         — broad vulnerability scan (optional, external tool); its
+                     findings are merged into the unified findings report.
+  3. dirsearch     — content discovery (optional, external tool); the endpoints
+                     it uncovers are parsed and handed to phase 4.
+  4. Targeted attack — CMS-aware login + recon when a CMS is detected
+                     (web_attacks.attack_cms), otherwise a generic discovery +
+                     credential spray (web_attacks.attack_generic). Both are fed
+                     the fingerprint *and* the paths discovered in phase 3.
+
+So the fingerprint adapts the attack to the target and the discovery phase
+widens its attack surface, instead of firing the same payloads everywhere.
 """
 
 from __future__ import annotations
 
+import csv
+import io
+import json
 import logging
 import shutil
+import urllib.parse
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -83,6 +94,7 @@ class HttpScanReport:
     server: str = ""
     technologies: list[str] = field(default_factory=list)
     nikto_findings: int = 0
+    discovered_paths: int = 0
     login_attempts: int = 0
     credentials_found: int = 0
     sensitive_paths: int = 0
@@ -91,7 +103,28 @@ class HttpScanReport:
     exit_code: int = 0
 
 
-def _phase_nikto(config: HttpScanConfig, results: ResultsDir) -> int:
+def _parse_nikto_csv(output_csv: Path, target_host: str) -> list[Finding]:
+    """Turn nikto's CSV rows into findings so they join the unified report.
+
+    Columns are: host, ip, port, osvdb-id, method, uri, description.
+    """
+    if not output_csv.exists():
+        return []
+
+    text = output_csv.read_text(encoding="utf-8", errors="replace")
+    findings: list[Finding] = []
+    for row in csv.reader(io.StringIO(text)):
+        if len(row) < 7 or row[0] != target_host:
+            continue
+        uri, description = row[5], row[6].strip()
+        if not description:
+            continue
+        findings.append(Finding("low", f"Nikto: {description[:120]}", uri))
+
+    return findings
+
+
+def _phase_nikto(config: HttpScanConfig, results: ResultsDir) -> list[Finding]:
     output_csv = results.file("nikto")
     output_txt = results.file("nikto.log")
     cmd = [
@@ -108,25 +141,17 @@ def _phase_nikto(config: HttpScanConfig, results: ResultsDir) -> int:
         "-maxtime",
         f"{config.nikto_timeout}s",
     ]
-    logger.info("Phase 1: Nikto against %s", config.base_url)
+    logger.info("Phase 2: Nikto against %s", config.base_url)
 
     result = run_command(cmd, timeout=config.nikto_timeout + 10, log_to=output_txt)
     if result.return_code == 127:
-        logger.error("nikto binary not found — skipping phase 1")
-        return 0
+        logger.error("nikto binary not found — skipping phase 2")
+        return []
 
-    findings = 0
-    if output_csv.exists():
-        prefix = f'"{config.target_host}'
-        findings = sum(
-            1
-            for line in output_csv.read_text(
-                encoding="utf-8",
-                errors="replace",
-            ).splitlines()
-            if line.startswith(prefix)
-        )
-    logger.info("Nikto completed in %.1fs (%d findings)", result.duration_s, findings)
+    findings = _parse_nikto_csv(output_csv, config.target_host)
+    logger.info(
+        "Nikto completed in %.1fs (%d findings)", result.duration_s, len(findings)
+    )
 
     return findings
 
@@ -142,16 +167,51 @@ def _locate_dirsearch() -> list[str] | None:
     return None
 
 
-def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
+# Statuses worth handing to the attack phase: live content or gated endpoints.
+_DISCOVERY_STATUSES = {200, 201, 204, 301, 302, 307, 401, 403, 405}
+_MAX_DISCOVERED_PATHS = 50
+
+
+def _parse_dirsearch_json(output_json: Path) -> list[str]:
+    """Extract interesting endpoint *paths* from dirsearch's JSON report."""
+    if not output_json.is_file():
+        return []
+
+    try:
+        data = json.loads(output_json.read_text(encoding="utf-8", errors="replace"))
+    except (ValueError, OSError):
+        return []
+
+    results = data.get("results", []) if isinstance(data, dict) else []
+    paths: list[str] = []
+    for entry in results:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("status") not in _DISCOVERY_STATUSES:
+            continue
+
+        raw = entry.get("path") or entry.get("url") or ""
+        if raw.startswith(("http://", "https://")):
+            raw = urllib.parse.urlsplit(raw).path
+        path = raw if raw.startswith("/") else "/" + raw
+        if path != "/" and path not in paths:
+            paths.append(path)
+        if len(paths) >= _MAX_DISCOVERED_PATHS:
+            break
+
+    return paths
+
+
+def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> list[str]:
     command_prefix = _locate_dirsearch()
     if command_prefix is None:
-        logger.warning("dirsearch not found — phase 2 skipped")
-        return False
+        logger.warning("dirsearch not found — phase 3 skipped")
+        return []
 
     wordlist = config.dirsearch_wordlist or ensure_dirsearch_wordlist()
     if wordlist is None:
-        logger.warning("No dirsearch wordlist available — phase 2 skipped")
-        return False
+        logger.warning("No dirsearch wordlist available — phase 3 skipped")
+        return []
 
     output_json = results.file("dirsearch.json")
     output_log = results.file("dirsearch.log")
@@ -161,6 +221,10 @@ def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
         config.base_url,
         "-w",
         str(wordlist),
+        # Append common file extensions so the wordlist's base-names also probe
+        # for sensitive files (configs, backups, dumps), not just directories.
+        "-e",
+        "php,txt,bak,old,zip,sql,conf,json,env",
         "-t",
         str(config.dirsearch_threads),
         "--timeout",
@@ -170,12 +234,16 @@ def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
         "-O",
         "json",
     ]
-    logger.info("Phase 2: dirsearch (wordlist=%s)", wordlist)
+    logger.info("Phase 3: dirsearch (wordlist=%s)", wordlist)
     result = run_command(cmd, timeout=config.dirsearch_timeout, log_to=output_log)
+    discovered = _parse_dirsearch_json(output_json)
     logger.info(
-        "dirsearch completed in %.1fs (rc=%d)", result.duration_s, result.return_code
+        "dirsearch completed in %.1fs (rc=%d, %d path(s) discovered)",
+        result.duration_s,
+        result.return_code,
+        len(discovered),
     )
-    return True
+    return discovered
 
 
 def _phase_fingerprint(
@@ -183,7 +251,7 @@ def _phase_fingerprint(
     results: ResultsDir,
     home: HttpResponse,
 ) -> Fingerprint:
-    logger.info("Phase 3: fingerprinting %s", config.base_url)
+    logger.info("Phase 1: fingerprinting %s", config.base_url)
     fp = fingerprint(
         config.base_url,
         request_timeout=config.request_timeout,
@@ -245,16 +313,22 @@ def _phase_attack(
     config: HttpScanConfig,
     results: ResultsDir,
     fp: Fingerprint,
+    discovered_paths: list[str],
 ) -> AttackOutcome:
     credentials = _build_credentials(config)
 
     if fp.attackable_cms:
-        logger.info("Phase 4: CMS-aware attack (%s)", fp.cms)
+        logger.info(
+            "Phase 4: CMS-aware attack (%s, +%d discovered path(s))",
+            fp.cms,
+            len(discovered_paths),
+        )
         return attack_cms(
             config.base_url,
             fp,
             results,
             credentials=credentials,
+            extra_paths=discovered_paths,
             timeout=config.request_timeout,
             pause=config.pause_between_probes,
             max_attempts=config.max_login_attempts,
@@ -263,7 +337,11 @@ def _phase_attack(
     if fp.hosted:
         logger.info("Phase 4: %s is a hosted platform — generic discovery only", fp.cms)
     else:
-        logger.info("Phase 4: generic discovery + credential spray (no CMS)")
+        logger.info(
+            "Phase 4: generic discovery + credential spray (no CMS, +%d discovered "
+            "path(s))",
+            len(discovered_paths),
+        )
 
     return attack_generic(
         config.base_url,
@@ -271,6 +349,7 @@ def _phase_attack(
         sensitive_paths=_load_payload_lines(PAYLOAD_HTTP_PATHS),
         injections=_load_payload_lines(PAYLOAD_HTTP_INJECTIONS),
         credentials=credentials,
+        extra_paths=discovered_paths,
         timeout=config.request_timeout,
         pause=config.pause_between_probes,
         max_attempts=config.max_login_attempts,
@@ -290,18 +369,7 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
         return report
     logger.info("HTTP target reachable (status %s)", home.status)
 
-    if config.skip_nikto:
-        report.skipped_phases.append("nikto")
-        logger.warning("Phase 1 skipped (--skip-nikto)")
-    else:
-        report.nikto_findings = _phase_nikto(config, results)
-
-    if config.skip_dirsearch:
-        report.skipped_phases.append("dirsearch")
-        logger.warning("Phase 2 skipped (--skip-dirsearch)")
-    else:
-        _phase_dirsearch(config, results)
-
+    # Phase 1: fingerprint first — it is cheap and drives every later phase.
     fp = _phase_fingerprint(config, results, home)
     report.cms = fp.cms
     report.cms_version = fp.cms_version
@@ -309,15 +377,34 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     report.server = fp.server
     report.technologies = fp.technologies
 
+    # Phase 2: broad vulnerability scan; findings join the unified report.
+    if config.skip_nikto:
+        report.skipped_phases.append("nikto")
+        logger.warning("Phase 2 skipped (--skip-nikto)")
+    else:
+        nikto_findings = _phase_nikto(config, results)
+        report.nikto_findings = len(nikto_findings)
+        report.findings.extend(nikto_findings)
+
+    # Phase 3: content discovery; the endpoints found feed the attack phase.
+    discovered_paths: list[str] = []
+    if config.skip_dirsearch:
+        report.skipped_phases.append("dirsearch")
+        logger.warning("Phase 3 skipped (--skip-dirsearch)")
+    else:
+        discovered_paths = _phase_dirsearch(config, results)
+        report.discovered_paths = len(discovered_paths)
+
+    # Phase 4: targeted attack, informed by the fingerprint and the discovery.
     if config.skip_login:
         report.skipped_phases.append("attack")
         logger.warning("Phase 4 skipped (--skip-login)")
     else:
-        outcome = _phase_attack(config, results, fp)
+        outcome = _phase_attack(config, results, fp, discovered_paths)
         report.login_attempts = outcome.login_attempts
         report.credentials_found = outcome.credentials_found
         report.sensitive_paths = outcome.sensitive_paths
-        report.findings = outcome.findings
+        report.findings.extend(outcome.findings)
 
     _write_findings(results, report)
     _write_summary(results, config, report)
@@ -349,6 +436,7 @@ def _write_summary(
         f"server: {report.server or 'unknown'}",
         f"technologies: {', '.join(report.technologies) or '-'}",
         f"nikto_findings: {report.nikto_findings}",
+        f"discovered_paths: {report.discovered_paths}",
         f"login_attempts: {report.login_attempts}",
         f"credentials_found: {report.credentials_found}",
         f"sensitive_paths: {report.sensitive_paths}",

@@ -8,9 +8,13 @@ from attacker.config import WORDLISTS_DIR
 
 logger = logging.getLogger(__name__)
 
+# common.txt lists directories *and* files, so dirsearch can discover sensitive
+# files (configs, backups) once paired with -e extensions — raft-medium-
+# directories only ever finds directories — while staying within the scan's
+# time budget (~4.7k entries vs. 30k+).
 _DIRSEARCH_WORDLIST_URL = (
     "https://raw.githubusercontent.com/danielmiessler/SecLists/master"
-    "/Discovery/Web-Content/raft-medium-directories.txt"
+    "/Discovery/Web-Content/common.txt"
 )
 
 _PASSWORD_WORDLIST_URL = (
@@ -48,9 +52,7 @@ def ensure_dirsearch_wordlist() -> Path | None:
     if _DIRSEARCH_WORDLIST_LOCAL.is_file():
         return _DIRSEARCH_WORDLIST_LOCAL
 
-    logger.info(
-        "No dirsearch wordlist found — fetching raft-medium-directories from SecLists"
-    )
+    logger.info("No dirsearch wordlist found — fetching common.txt from SecLists")
     if _download(_DIRSEARCH_WORDLIST_URL, _DIRSEARCH_WORDLIST_LOCAL):
         return _DIRSEARCH_WORDLIST_LOCAL
 
@@ -62,7 +64,7 @@ def ensure_password_wordlist() -> Path | None:
         return _PASSWORD_WORDLIST_LOCAL
 
     logger.info(
-        "No FTP password wordlist found — fetching 10k common passwords from SecLists"
+        "No password wordlist found — fetching 10k common passwords from SecLists"
     )
     if _download(_PASSWORD_WORDLIST_URL, _PASSWORD_WORDLIST_LOCAL):
         return _PASSWORD_WORDLIST_LOCAL
