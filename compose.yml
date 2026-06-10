@@ -3,6 +3,14 @@
 # (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers
 # OpenObserve (US-19) — pas de SIEM, pas de broker intermédiaire.
 services:
+  attacker:
+    build:
+      context: attacker
+    image: qualite863/attacker:latest
+    container_name: attacker
+    volumes:
+      - ./attacker:/app/attacker
+
   honeypot-ssh:
     build: ./honeypots/ssh
     image: qualite863/honeypot-ssh:latest
