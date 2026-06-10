@@ -1,0 +1,3 @@
+# Dépendances runtime du honeypot FTP (volontairement minimales pour réduire
+# la surface d'attaque de l'image).
+pyftpdlib==2.2.0

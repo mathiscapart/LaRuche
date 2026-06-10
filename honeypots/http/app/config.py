@@ -28,3 +28,28 @@ SCHEMA_VERSION = "1.0.0"
 # Alertes canary (US-11) poussées vers Redis.
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 ALERT_CHANNEL = os.getenv("ALERT_CHANNEL", "honeypot:alerts")
+
+
+# --- Faux login WordPress (hardening anti-détection, comme le honeypot SSH) ---
+def _parse_credentials(raw: str) -> set[tuple[str, str]]:
+    pairs: set[tuple[str, str]] = set()
+    for item in raw.split(","):
+        cleaned = item.strip()
+        if ":" in cleaned:
+            user, _, password = cleaned.partition(":")
+            pairs.add((user, password))
+    return pairs
+
+
+# Couples FAIBLES acceptés par le faux login. Accepter n'importe quel couple
+# serait un tell de honeypot : tout le reste est refusé.
+ALLOWED_WP_CREDENTIALS = _parse_credentials(
+    os.getenv("WP_ALLOWED_CREDENTIALS", "admin:admin,admin:admin123,administrator:password123")
+)
+# Cookie d'auth posé après un login réussi (forme d'un vrai WordPress).
+LOGGED_IN_COOKIE = "wordpress_logged_in_" + os.getenv("WP_COOKIE_HASH", "8d2a1f4c9b7e6051")
+
+# Jitter de latence (anti-fingerprint temporel, comme le honeypot SSH).
+# Mettre HTTP_JITTER_MAX_MS=0 pour désactiver (tests).
+JITTER_MIN_MS = int(os.getenv("HTTP_JITTER_MIN_MS", "50"))
+JITTER_MAX_MS = int(os.getenv("HTTP_JITTER_MAX_MS", "300"))
