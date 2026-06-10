@@ -13,9 +13,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Code applicatif.
+# Code applicatif (le dossier alerts/ a disparu avec le retrait de Redis).
 COPY app ./app
-COPY alerts ./alerts
 
 # Utilisateur non privilégié + répertoire de logs inscriptible (aligné SSH).
 RUN useradd --system --no-create-home --uid 10001 honey \
