@@ -1,9 +1,21 @@
+"""Professional HTTP scan pipeline (M1SPRO brick B10).
+
+Phases:
+  1. Nikto            — broad vulnerability scan (optional, external tool).
+  2. dirsearch        — content discovery (optional, external tool).
+  3. Fingerprint      — identify the CMS / server / stack (web_fingerprint).
+  4. Targeted attack  — CMS-aware login + recon when a CMS is detected
+                        (web_attacks.attack_cms), otherwise a generic
+                        discovery + credential spray (web_attacks.attack_generic).
+
+The fingerprint decides phase 4, so the scan adapts to the target instead of
+firing the same payloads everywhere.
+"""
+
 from __future__ import annotations
 
 import logging
 import shutil
-import time
-import urllib.parse
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -14,7 +26,16 @@ from attacker.attacks.common import (
     http_request,
     make_results_dir,
     run_command,
+    resolve_username_wordlist,
+    resolve_password_wordlist,
 )
+from attacker.attacks.web_attacks import (
+    AttackOutcome,
+    Finding,
+    attack_cms,
+    attack_generic,
+)
+from attacker.attacks.web_fingerprint import Fingerprint, fingerprint
 from attacker.config import (
     PAYLOAD_HTTP_INJECTIONS,
     PAYLOAD_HTTP_PATHS,
@@ -35,10 +56,14 @@ class HttpScanConfig:
     request_timeout: float = 10.0
     pause_between_probes: float = 0.3
     pause_before_assertions: float = 10.0
+    max_login_attempts: int = 40
     skip_nikto: bool = False
     skip_dirsearch: bool = False
+    skip_login: bool = False
     bypass_allowlist: bool = False
     dirsearch_wordlist: Path | None = None
+    password_wordlist: Path | None = None
+    username_wordlist: Path | None = None
 
     @property
     def base_url(self) -> str:
@@ -54,8 +79,16 @@ class HttpScanConfig:
 @dataclass
 class HttpScanReport:
     target: str
+    cms: str = ""
+    cms_version: str = ""
+    cms_confidence: int = 0
+    server: str = ""
+    technologies: list[str] = field(default_factory=list)
     nikto_findings: int = 0
-    probes_sent: int = 0
+    login_attempts: int = 0
+    credentials_found: int = 0
+    sensitive_paths: int = 0
+    findings: list[Finding] = field(default_factory=list)
     skipped_phases: list[str] = field(default_factory=list)
     exit_code: int = 0
 
@@ -147,92 +180,103 @@ def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
     return True
 
 
-def _phase_probes(config: HttpScanConfig, results: ResultsDir) -> list[HttpResponse]:
-    paths = load_lines(PAYLOAD_HTTP_PATHS)
-    injections = load_lines(PAYLOAD_HTTP_INJECTIONS)
-    logger.info(
-        "Phase 3: targeted probes (%d paths + %d injections)",
-        len(paths),
-        len(injections),
-    )
-
-    probes: list[HttpResponse] = []
-    summary_lines: list[str] = []
-
-    for path in paths:
-        encoded = _ensure_path_encoded(path)
-        response = http_request(
-            config.base_url,
-            encoded,
-            timeout=config.request_timeout,
-        )
-        probes.append(response)
-        summary_lines.append(_format_probe_line(response))
-        logger.debug("GET %s -> %s", encoded, response.status or response.error)
-        time.sleep(config.pause_between_probes)
-
-    for injection in injections:
-        encoded = _ensure_path_encoded(injection)
-        response = http_request(
-            config.base_url,
-            encoded,
-            timeout=config.request_timeout,
-        )
-        probes.append(response)
-        summary_lines.append(_format_probe_line(response))
-        logger.debug("GET %s -> %s", encoded, response.status or response.error)
-        time.sleep(config.pause_between_probes)
-
-    # POST examples to exercise authenticated routes that the honeypot logs.
-    form_body = urllib.parse.urlencode(
-        {
-            "log": "admin",
-            "pwd": "password123",
-            "wp-submit": "Log In",
-        }
-    ).encode()
-    response = http_request(
+def _phase_fingerprint(
+    config: HttpScanConfig,
+    results: ResultsDir,
+    home: HttpResponse,
+) -> Fingerprint:
+    logger.info("Phase 3: fingerprinting %s", config.base_url)
+    fp = fingerprint(
         config.base_url,
-        "/wp-login.php",
-        method="POST",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        body=form_body,
-        timeout=config.request_timeout,
+        request_timeout=config.request_timeout,
+        pause=config.pause_between_probes,
+        home=home,
     )
-    probes.append(response)
-    summary_lines.append(_format_probe_line(response))
+    lines = [
+        f"target: {config.base_url}",
+        f"cms: {fp.cms or 'unknown'}",
+        f"cms_confidence: {fp.cms_confidence}%",
+        f"cms_version: {fp.cms_version or 'unknown'}",
+        f"hosted_platform: {fp.hosted}",
+        f"server: {fp.server or 'unknown'}",
+        f"x_powered_by: {fp.powered_by or 'unknown'}",
+        f"title: {fp.title or '-'}",
+        f"technologies: {', '.join(fp.technologies) or '-'}",
+        "",
+        "# evidence",
+        *fp.evidence,
+    ]
+    results.file("fingerprint.txt").write_text("\n".join(lines), encoding="utf-8")
+    return fp
 
-    response = http_request(
+
+def _load_payload_lines(path: Path) -> list[str]:
+    try:
+        return load_lines(path)
+    except FileNotFoundError:
+        logger.warning("Payload file missing (%s) — using built-in defaults only", path)
+        return []
+
+
+def _build_credentials(config: HttpScanConfig) -> list[tuple[str, str]]:
+    """Pair every username with every password from the resolved wordlists,
+    capped at ``max_login_attempts`` candidate pairs."""
+    username_wordlist = resolve_username_wordlist(config.username_wordlist)
+    password_wordlist = resolve_password_wordlist(config.password_wordlist)
+
+    usernames = _load_payload_lines(username_wordlist) if username_wordlist else []
+    passwords = _load_payload_lines(password_wordlist) if password_wordlist else []
+
+    if not usernames or not passwords:
+        logger.warning(
+            "Missing username/password wordlist — credential spray will be empty"
+        )
+        return []
+
+    credentials: list[tuple[str, str]] = []
+    for user in usernames:
+        for password in passwords:
+            credentials.append((user, password))
+            if len(credentials) >= config.max_login_attempts:
+                return credentials
+
+    return credentials
+
+
+def _phase_attack(
+    config: HttpScanConfig,
+    results: ResultsDir,
+    fp: Fingerprint,
+) -> AttackOutcome:
+    credentials = _build_credentials(config)
+
+    if fp.attackable_cms:
+        logger.info("Phase 4: CMS-aware attack (%s)", fp.cms)
+        return attack_cms(
+            config.base_url,
+            fp,
+            results,
+            credentials=credentials,
+            timeout=config.request_timeout,
+            pause=config.pause_between_probes,
+            max_attempts=config.max_login_attempts,
+        )
+
+    if fp.hosted:
+        logger.info("Phase 4: %s is a hosted platform — generic discovery only", fp.cms)
+    else:
+        logger.info("Phase 4: generic discovery + credential spray (no CMS)")
+
+    return attack_generic(
         config.base_url,
-        "/admin",
-        method="POST",
-        headers={"Content-Type": "application/json"},
-        body=b'{"username":"admin","password":"admin123"}',
+        results,
+        sensitive_paths=_load_payload_lines(PAYLOAD_HTTP_PATHS),
+        injections=_load_payload_lines(PAYLOAD_HTTP_INJECTIONS),
+        credentials=credentials,
         timeout=config.request_timeout,
+        pause=config.pause_between_probes,
+        max_attempts=config.max_login_attempts,
     )
-    probes.append(response)
-    summary_lines.append(_format_probe_line(response))
-
-    results.file("probes.txt").write_text("\n".join(summary_lines), encoding="utf-8")
-    logger.info("Sent %d probes", len(probes))
-    return probes
-
-
-def _ensure_path_encoded(raw: str) -> str:
-    if not raw.startswith("/"):
-        raw = "/" + raw
-
-    return urllib.parse.quote(raw, safe="/?=&-._~")
-
-
-def _format_probe_line(response: HttpResponse) -> str:
-    status = (
-        str(response.status)
-        if response.status is not None
-        else f"ERR({response.error})"
-    )
-
-    return f"{response.method:<4} {response.path:<60} {status}"
 
 
 def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
@@ -245,13 +289,13 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     results = make_results_dir(reports_dir, prefix="http")
     logger.info("Artefacts directory: %s", results.path)
 
-    probe = http_request(config.base_url, "/", timeout=5)
-    if not probe.ok:
-        logger.error("HTTP honeypot unreachable: %s", probe.error)
+    home = http_request(config.base_url, "/", timeout=5, capture_body=True)
+    if not home.ok:
+        logger.error("HTTP honeypot unreachable: %s", home.error)
         report.exit_code = 2
         return report
+    logger.info("HTTP target reachable (status %s)", home.status)
 
-    logger.info("HTTP honeypot reachable (status %s)", probe.status)
     if config.skip_nikto:
         report.skipped_phases.append("nikto")
         logger.warning("Phase 1 skipped (--skip-nikto)")
@@ -264,11 +308,37 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     else:
         _phase_dirsearch(config, results)
 
-    probes = _phase_probes(config, results)
-    report.probes_sent = len(probes)
+    fp = _phase_fingerprint(config, results, home)
+    report.cms = fp.cms
+    report.cms_version = fp.cms_version
+    report.cms_confidence = fp.cms_confidence
+    report.server = fp.server
+    report.technologies = fp.technologies
 
+    if config.skip_login:
+        report.skipped_phases.append("attack")
+        logger.warning("Phase 4 skipped (--skip-login)")
+    else:
+        outcome = _phase_attack(config, results, fp)
+        report.login_attempts = outcome.login_attempts
+        report.credentials_found = outcome.credentials_found
+        report.sensitive_paths = outcome.sensitive_paths
+        report.findings = outcome.findings
+
+    _write_findings(results, report)
     _write_summary(results, config, report)
     return report
+
+
+def _write_findings(results: ResultsDir, report: HttpScanReport) -> None:
+    if not report.findings:
+        results.file("findings.txt").write_text("(no findings)\n", encoding="utf-8")
+        return
+
+    order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    ranked = sorted(report.findings, key=lambda f: order.get(f.severity, 5))
+    body = "\n".join(finding.line() for finding in ranked)
+    results.file("findings.txt").write_text(body + "\n", encoding="utf-8")
 
 
 def _write_summary(
@@ -279,11 +349,18 @@ def _write_summary(
     summary = results.file("summary.txt")
     lines = [
         f"target: {report.target}",
+        f"target_port: {config.target_port}",
+        f"cms: {report.cms or 'unknown'} ({report.cms_confidence}%)",
+        f"cms_version: {report.cms_version or 'unknown'}",
+        f"server: {report.server or 'unknown'}",
+        f"technologies: {', '.join(report.technologies) or '-'}",
         f"nikto_findings: {report.nikto_findings}",
-        f"probes_sent: {report.probes_sent}",
+        f"login_attempts: {report.login_attempts}",
+        f"credentials_found: {report.credentials_found}",
+        f"sensitive_paths: {report.sensitive_paths}",
+        f"total_findings: {len(report.findings)}",
         f"skipped_phases: {','.join(report.skipped_phases) or 'none'}",
         f"exit_code: {report.exit_code}",
-        f"target_port: {config.target_port}",
     ]
 
     summary.write_text("\n".join(lines), encoding="utf-8")

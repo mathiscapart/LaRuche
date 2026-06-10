@@ -1,0 +1,69 @@
+# Sensitive files, backups and config disclosure probed during the generic
+# (non-CMS) HTTP attack phase. One path per line; '#' starts a comment.
+
+# --- secrets / environment ---
+/.env
+/.env.local
+/.env.backup
+/.env.prod
+/config.php
+/config.php.bak
+/config.json
+/configuration.php
+/settings.py
+/application.yml
+/appsettings.json
+
+# --- version control exposure ---
+/.git/config
+/.git/HEAD
+/.git/logs/HEAD
+/.svn/entries
+/.hg/hgrc
+/.bzr/branch/branch.conf
+
+# --- backups / archives / dumps ---
+/backup.zip
+/backup.tar.gz
+/backup.sql
+/database.sql
+/db.sql
+/dump.sql
+/www.zip
+/site.tar.gz
+/.DS_Store
+/web.config
+/.htaccess
+/.htpasswd
+
+# --- info / status endpoints ---
+/phpinfo.php
+/info.php
+/server-status
+/server-info
+/status
+/actuator
+/actuator/env
+/actuator/health
+/metrics
+
+# --- API / docs / dependency manifests ---
+/api
+/api/v1
+/api/v1/users
+/swagger.json
+/swagger-ui.html
+/openapi.json
+/graphql
+/composer.json
+/composer.lock
+/package.json
+/package-lock.json
+/yarn.lock
+/Gemfile
+
+# --- crawl helpers ---
+/robots.txt
+/sitemap.xml
+/crossdomain.xml
+/.well-known/security.txt

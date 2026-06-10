@@ -24,6 +24,7 @@ logger = logging.getLogger("attacker")
 
 _SSH_FALLBACK_PORTS = (22, 2222)
 _FTP_FALLBACK_PORTS = (21, 2121)
+_HTTP_FALLBACK_PORTS = (80, 8080)
 
 
 def _resolve_port(host: str, explicit: int | None, candidates: tuple[int, ...]) -> int:
@@ -42,6 +43,7 @@ def _resolve_port(host: str, explicit: int | None, candidates: tuple[int, ...]) 
         candidates[-1],
     )
     return candidates[-1]
+
 
 _EPILOG = """\
 Examples:
@@ -166,8 +168,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_http.add_argument("--nikto-timeout", type=int, default=120)
     p_http.add_argument("--dirsearch-wordlist", type=Path, default=None)
+    p_http.add_argument("--max-login-attempts", type=int, default=40)
     p_http.add_argument("--skip-nikto", action="store_true")
     p_http.add_argument("--skip-dirsearch", action="store_true")
+    p_http.add_argument("--password-wordlist", type=Path, default=None)
+    p_http.add_argument("--username-wordlist", type=Path, default=None)
+    p_http.add_argument(
+        "--skip-login",
+        action="store_true",
+        help="skip phase 4 (CMS-aware / generic credential attacks)",
+    )
     p_http.add_argument(
         "--pause",
         type=float,
@@ -297,25 +307,37 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 
 def _cmd_http(args: argparse.Namespace) -> int:
-    rc = _preflight(args, "http", {"http": args.port})
+    http_port = _resolve_port(args.target, args.port, _HTTP_FALLBACK_PORTS)
+    rc = _preflight(args, "http", {"http": http_port})
     if rc != 0:
         return rc
 
     config = http_scan.HttpScanConfig(
         target_host=args.target,
-        target_port=args.port,
+        target_port=http_port,
         nikto_timeout=args.nikto_timeout,
         dirsearch_wordlist=args.dirsearch_wordlist,
+        max_login_attempts=args.max_login_attempts,
         skip_nikto=args.skip_nikto,
         skip_dirsearch=args.skip_dirsearch,
+        skip_login=args.skip_login,
         bypass_allowlist=args.no_allowlist_check,
         pause_before_assertions=args.pause,
+        username_wordlist=args.username_wordlist,
+        password_wordlist=args.password_wordlist,
     )
     report = http_scan.run(config, args.reports_dir)
     logger.info(
-        "HTTP report: probes=%d nikto_findings=%d exit=%d",
-        report.probes_sent,
+        "HTTP report: cms=%s (%d%%) version=%s login_attempts=%d "
+        "credentials_found=%d sensitive_paths=%d nikto=%d findings=%d exit=%d",
+        report.cms or "unknown",
+        report.cms_confidence,
+        report.cms_version or "?",
+        report.login_attempts,
+        report.credentials_found,
+        report.sensitive_paths,
         report.nikto_findings,
+        len(report.findings),
         report.exit_code,
     )
     return report.exit_code
@@ -383,10 +405,11 @@ class _CampaignOutcome:
 
 
 def _cmd_all(args: argparse.Namespace) -> int:
+    http_port = _resolve_port(args.target, args.http_port, _HTTP_FALLBACK_PORTS)
     rc = _preflight(
         args,
         "all",
-        {"http": args.http_port, "ftp": args.ftp_port, "ssh": args.ssh_port},
+        {"http": http_port, "ftp": args.ftp_port, "ssh": args.ssh_port},
     )
     if rc != 0:
         return rc
@@ -407,7 +430,7 @@ def _cmd_all(args: argparse.Namespace) -> int:
         report = http_scan.run(
             http_scan.HttpScanConfig(
                 target_host=args.target,
-                target_port=args.http_port,
+                target_port=http_port,
                 bypass_allowlist=args.no_allowlist_check,
             ),
             args.reports_dir,
