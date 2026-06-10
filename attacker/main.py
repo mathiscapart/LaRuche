@@ -4,10 +4,10 @@ import argparse
 import logging
 import sys
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Sequence
 
 from attacker import __version__
 from attacker.attacks import ftp_bruteforce, http_scan, ssh_bruteforce
@@ -188,8 +188,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="FTP brute-force (Hydra + anonymous + decoys)",
     )
     p_ftp.add_argument("--port", type=int, default=None, help="FTP port")
-    p_ftp.add_argument("--hydra-tasks", type=int, default=8)
-    p_ftp.add_argument("--hydra-timeout", type=int, default=300)
+    p_ftp.add_argument("--hydra-tasks", type=int, default=16)
+    p_ftp.add_argument(
+        "--hydra-timeout",
+        type=int,
+        default=300,
+        help="seconds before hydra is killed (0 = no limit, run the full wordlist)",
+    )
     p_ftp.add_argument("--password-wordlist", type=Path, default=None)
     p_ftp.add_argument("--username-wordlist", type=Path, default=None)
     p_ftp.add_argument("--skip-hydra", action="store_true")
@@ -204,8 +209,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="SSH brute-force (delegates to attacker.attacks.ssh_bruteforce)",
     )
     p_ssh.add_argument("--port", type=int, default=None)
-    p_ssh.add_argument("--hydra-tasks", type=int, default=4)
-    p_ssh.add_argument("--hydra-timeout", type=int, default=120)
+    p_ssh.add_argument("--hydra-tasks", type=int, default=16)
+    p_ssh.add_argument(
+        "--hydra-timeout",
+        type=int,
+        default=120,
+        help="seconds before hydra is killed (0 = no limit, run the full wordlist)",
+    )
     p_ssh.add_argument("--skip-hydra", action="store_true")
     p_ssh.add_argument("--skip-manual", action="store_true")
 
@@ -537,9 +547,7 @@ def _cmd_all(args: argparse.Namespace) -> int:
         logger.info("=== Campaign %s ===", label)
         t0 = time.monotonic()
         exit_code = runner(args.target, port, consolidated)
-        outcomes.append(
-            _CampaignOutcome(label, exit_code, time.monotonic() - t0)
-        )
+        outcomes.append(_CampaignOutcome(label, exit_code, time.monotonic() - t0))
 
     duration = time.monotonic() - start
     failed = sum(1 for o in outcomes if not o.skipped and o.exit_code != 0)

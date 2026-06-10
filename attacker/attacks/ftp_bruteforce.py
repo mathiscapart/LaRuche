@@ -13,6 +13,7 @@ from attacker.attacks.common import (
     resolve_username_wordlist,
     run_hydra,
 )
+from attacker.attacks.honeypot import analyze_logins, detect_ftp, warn_if_suspected
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class FtpBruteforceConfig:
     target_host: str
     target_port: int = 2121
-    hydra_tasks: int = 8
+    hydra_tasks: int = 16
     hydra_timeout: int = 300
     ftp_timeout: float = 10.0
     pause_between_manual: float = 0.3
@@ -39,6 +40,7 @@ class FtpBruteforceReport:
     hydra_credentials_found: int = 0
     anonymous_connected: bool = False
     decoys_downloaded: int = 0
+    honeypot_suspected: bool = False
     skipped_phases: list[str] = field(default_factory=list)
     exit_code: int = 0
 
@@ -95,13 +97,16 @@ def run(
 
     if not is_reachable(config.target_host, config.target_port):
         logger.error(
-            "FTP honeypot unreachable at %s:%d",
+            "FTP target unreachable at %s:%d",
             config.target_host,
             config.target_port,
         )
         report.exit_code = 2
         return report
-    logger.info("FTP honeypot reachable")
+    logger.info("FTP target reachable")
+
+    # Pre-attack passive/active honeypot check (banner + default/decoy logins).
+    verdict = detect_ftp(config.target_host, config.target_port)
 
     username_wordlist = resolve_username_wordlist(config.username_wordlist)
     password_wordlist = resolve_password_wordlist(config.password_wordlist)
@@ -116,7 +121,7 @@ def run(
         logger.error("No username wordlist available; skipping hydra phase")
         report.skipped_phases.append("hydra")
     else:
-        report.hydra_attempts, report.hydra_credentials_found = run_hydra(
+        attempts, found = run_hydra(
             "ftp",
             config.target_host,
             config.target_port,
@@ -126,6 +131,10 @@ def run(
             password_wordlist,
             results,
         )
+        report.hydra_attempts = attempts
+        report.hydra_credentials_found = len(found)
+        # Coherence: feed the full brute-force result back into the verdict.
+        analyze_logins(verdict, found, protocol="ftp", indicator="ftp-bruteforce")
 
     if config.skip_anonymous:
         report.skipped_phases.append("anonymous")
@@ -134,6 +143,8 @@ def run(
         report.anonymous_connected, report.decoys_downloaded = _phase_anonymous(
             config, results
         )
+
+    report.honeypot_suspected = warn_if_suspected(verdict, logger)
 
     _write_summary(results, report)
     return report
@@ -147,6 +158,7 @@ def _write_summary(results: ResultsDir, report: FtpBruteforceReport) -> None:
         f"hydra_credentials_found: {report.hydra_credentials_found}",
         f"anonymous_connected: {report.anonymous_connected}",
         f"decoys_downloaded: {report.decoys_downloaded}",
+        f"honeypot_suspected: {report.honeypot_suspected}",
         f"skipped_phases: {','.join(report.skipped_phases) or 'none'}",
         f"exit_code: {report.exit_code}",
     ]
