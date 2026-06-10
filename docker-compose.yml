@@ -1,7 +1,7 @@
 # Stack honeypot LaRuche.
 # Les honeypots écrivent leurs événements en JSON Lines sur un volume commun
-# (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers le
-# pipeline (Wazuh US-18 / OpenObserve US-19) — pas de broker intermédiaire.
+# (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers
+# OpenObserve (US-19) — pas de SIEM, pas de broker intermédiaire.
 services:
   honeypot-ssh:
     build: ./honeypots/ssh
@@ -79,6 +79,11 @@ services:
     depends_on:
       - honeypot-ssh
       - honeypot-ftp
+      - openobserve
+    environment:
+      # Identifiants d'ingestion OpenObserve (US-19), injectés dans la conf via ${...}.
+      OPENOBSERVE_USER: "admin@laruche.local"
+      OPENOBSERVE_PASSWORD: "Honeypot2026!"
     volumes:
       # Logs honeypot en LECTURE SEULE (le collecteur ne doit pas y écrire).
       - honeypot_logs:/var/log/honeypot:ro
@@ -93,6 +98,24 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # US-19 : stockage + exploration des événements (dashboards research, pas de SIEM).
+  openobserve:
+    # Épinglé par digest pour la reproductibilité (US-26).
+    image: public.ecr.aws/zinclabs/openobserve@sha256:05deec62c1b643a87c31cf7f1ebeb9d4f1a4a69b012fc78464c2e00a37e17570
+    container_name: openobserve
+    restart: unless-stopped
+    environment:
+      ZO_ROOT_USER_EMAIL: "admin@laruche.local"
+      ZO_ROOT_USER_PASSWORD: "Honeypot2026!"
+      ZO_DATA_DIR: "/data"
+    ports:
+      - "5080:5080"
+    volumes:
+      - openobserve_data:/data
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   honeypot_logs:
   fluentbit_state:
+  openobserve_data:

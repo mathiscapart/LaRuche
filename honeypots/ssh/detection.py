@@ -1,8 +1,8 @@
 """Analyse comportementale des commandes (US-04, US-05, US-06, US-07).
 
 Ce module ne produit pas de sortie shell : il qualifie les commandes et la
-session pour alimenter le champ ``classification`` des événements, sur lequel
-le SIEM (Wazuh) déclenche ses alertes.
+session pour alimenter le champ ``classification`` des événements, visible
+ensuite dans OpenObserve (US-19).
 
 - US-04 : escalade de privilèges (``sudo su``, ``su root``...) → severity HIGH
 - US-05 : commandes malware (``wget``, ``curl``, reverse shell...) → CRITICAL
@@ -56,7 +56,7 @@ def is_escalation(line: str) -> bool:
 def classify_command(line: str) -> dict | None:
     """Construit le bloc ``classification`` d'un événement de commande.
 
-    Renvoie ``None`` pour une commande banale (le SIEM enrichira si besoin).
+    Renvoie ``None`` pour une commande banale (enrichie en aval si besoin).
     Priorité au malware (CRITICAL) sur l'escalade (HIGH).
     """
     malware = detect_malware(line)

@@ -114,7 +114,7 @@
 
     "classification": {
       "type": "object",
-      "description": "Rempli par Wazuh Manager après ingestion",
+      "description": "Rempli par le honeypot et/ou le classifier (US-30)",
       "properties": {
         "category": {
           "type": "string",

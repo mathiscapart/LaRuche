@@ -2,9 +2,9 @@
 
 Chaque événement est conforme à ``docs/event.schema.json`` (HoneypotEvent v1).
 Sortie : une ligne JSON par événement (JSON Lines), sur ``stdout`` (logs Docker)
-et, optionnellement, dans un fichier tail par Filebeat puis expédié au SIEM
-(Wazuh). Le champ ``classification.severity`` porte la gravité (``critical``
-US-05, ``high`` US-04) sur laquelle le SIEM déclenche ses alertes.
+et, optionnellement, dans un fichier tail par Fluent Bit (US-17) puis indexé
+dans OpenObserve (US-19). Le champ ``classification.severity`` porte la gravité
+(``critical`` US-05, ``high`` US-04).
 """
 
 from __future__ import annotations

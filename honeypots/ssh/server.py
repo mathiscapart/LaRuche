@@ -7,7 +7,7 @@ un faux shell Debian 12 (US-02) instrumenté pour la détection d'escalade
 de session (US-07).
 
 Aucune dépendance réseau au démarrage : les événements sont écrits en JSON
-Lines (stdout + fichier) pour être collectés par Filebeat vers le SIEM.
+Lines (stdout + fichier) pour être collectés par Fluent Bit (US-17) vers OpenObserve.
 """
 
 from __future__ import annotations
