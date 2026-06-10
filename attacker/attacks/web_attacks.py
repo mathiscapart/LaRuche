@@ -401,15 +401,23 @@ def attack_cms(
     results: ResultsDir,
     *,
     credentials: list[tuple[str, str]],
+    extra_paths: list[str] | None = None,
     timeout: float = 10.0,
     pause: float = 0.3,
     max_attempts: int = 40,
 ) -> AttackOutcome:
-    """Run CMS-aware recon + authentication attacks for a recognised CMS."""
+    """Run CMS-aware recon + authentication attacks for a recognised CMS.
+
+    ``extra_paths`` carries endpoints found by the earlier content-discovery
+    phase (dirsearch); they are probed alongside the CMS-specific recon list so
+    discovery actually feeds the attack instead of being thrown away.
+    """
     outcome = AttackOutcome()
     log: list[str] = [f"# CMS attack: {fp.cms} {fp.cms_version}".rstrip()]
 
     recon = list(CMS_RECON_PATHS.get(fp.cms, ()))
+    known = {path for path, _ in recon}
+    recon += [(p, "info") for p in (extra_paths or []) if p not in known]
     if recon:
         log.append("\n## Recon paths")
         outcome.sensitive_paths += _probe_paths(
@@ -475,11 +483,17 @@ def attack_generic(
     sensitive_paths: list[str],
     injections: list[str],
     credentials: list[tuple[str, str]],
+    extra_paths: list[str] | None = None,
     timeout: float = 10.0,
     pause: float = 0.3,
     max_attempts: int = 40,
 ) -> AttackOutcome:
-    """Discovery + spray for targets that are not a recognised CMS."""
+    """Discovery + spray for targets that are not a recognised CMS.
+
+    ``extra_paths`` carries endpoints found by the earlier content-discovery
+    phase (dirsearch); they extend the static login/admin candidate list so the
+    credential spray targets the real attack surface, not only well-known paths.
+    """
     outcome = AttackOutcome()
     log: list[str] = ["# Generic attack (no CMS fingerprinted)"]
 
@@ -494,10 +508,15 @@ def attack_generic(
         pause=pause,
     )
 
-    # 2. Discover login / admin entry points.
+    # 2. Discover login / admin entry points (well-known + dirsearch hits).
     log.append("\n## Login discovery")
+    candidate_paths = list(COMMON_LOGIN_PATHS)
+    for path in extra_paths or []:
+        if path not in candidate_paths:
+            candidate_paths.append(path)
+
     discovered: list[str] = []
-    for path in COMMON_LOGIN_PATHS:
+    for path in candidate_paths:
         response = http_request(base_url, path, timeout=timeout, capture_body=True)
         status = (
             response.status if response.status is not None else f"ERR({response.error})"
