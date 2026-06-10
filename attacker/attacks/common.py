@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from attacker.config import ALLOWLIST_FILE, Allowlist, load_allowlist
 from attacker.wordlists import ensure_password_wordlist, ensure_username_wordlist
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "HttpResponse",
     "ResultsDir",
-    "ensure_allowed",
     "http_request",
     "is_reachable",
     "make_results_dir",
@@ -348,37 +346,3 @@ def run_hydra(
         found,
     )
     return attempts, found
-
-
-def ensure_allowed(
-    target: str,
-    *,
-    bypass: bool = False,
-    allowlist_path: Path = ALLOWLIST_FILE,
-) -> bool:
-    if bypass:
-        logger.warning(
-            "Allowlist check bypassed (--no-allowlist-check). Target: %s",
-            target,
-        )
-        return True
-
-    allowlist: Allowlist = load_allowlist(allowlist_path)
-    if not allowlist.networks:
-        logger.error(
-            "Allowlist is empty or missing (%s). Refusing to attack %s.",
-            allowlist.source,
-            target,
-        )
-        return False
-
-    if not allowlist.is_allowed(target):
-        logger.error(
-            "Target %s is not in the allowlist (%s). Refusing to proceed.",
-            target,
-            allowlist.source,
-        )
-        return False
-
-    logger.debug("Target %s is allowed by %s", target, allowlist.source)
-    return True

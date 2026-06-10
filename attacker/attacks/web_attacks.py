@@ -320,9 +320,7 @@ def _spray(
         outcome = "SUCCESS" if success else "fail"
         log.append(f"{vector.name:<32} {user}:{password:<14} -> {status} [{outcome}]")
         if success:
-            logger.warning(
-                "Valid credentials via %s: %s:%s", vector.name, user, password
-            )
+            logger.info("Valid credentials via %s: %s:%s", vector.name, user, password)
             findings.append(
                 Finding(
                     "critical",
