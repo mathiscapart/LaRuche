@@ -30,6 +30,20 @@ __all__ = [
 _DEFAULT_UA = "Mozilla/5.0 (compatible; attacker/1.0; +https://m1spro.local)"
 
 
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Returning None tells urllib to surface the 3xx response untouched.
+
+    Login detection depends on seeing the redirect status + Set-Cookie that a
+    successful authentication returns; following it silently would hide both.
+    """
+
+    def redirect_request(self, *args: object, **kwargs: object) -> None:
+        return None
+
+
+_NO_REDIRECT_OPENER = urllib.request.build_opener(_NoRedirectHandler)
+
+
 @dataclass(frozen=True)
 class CommandResult:
     return_code: int
@@ -112,10 +126,57 @@ class HttpResponse:
     path: str
     status: int | None
     error: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+    body: str = ""
+    elapsed_s: float = 0.0
 
     @property
     def ok(self) -> bool:
         return self.status is not None
+
+    def header(self, name: str) -> str:
+        return self.headers.get(name.lower(), "")
+
+
+def _collect_headers(message: object) -> dict[str, str]:
+    # http.client.HTTPMessage.items() yields duplicates (notably Set-Cookie);
+    # fold them so cookie/auth detection still sees every value.
+    collected: dict[str, str] = {}
+    for key, value in getattr(message, "items", list)():
+        lower = key.lower()
+        collected[lower] = (
+            f"{collected[lower]}, {value}" if lower in collected else value
+        )
+    return collected
+
+
+def _build_response(
+    method: str,
+    path: str,
+    status: int | None,
+    source: object,
+    *,
+    start: float,
+    capture_body: bool,
+    max_body: int,
+) -> HttpResponse:
+    headers = _collect_headers(getattr(source, "headers", None) or [])
+    body_text = ""
+    if capture_body:
+        try:
+            raw = source.read(max_body + 1)  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001 — body is best-effort
+            raw = b""
+        if isinstance(raw, bytes):
+            body_text = raw[:max_body].decode("utf-8", "replace")
+    return HttpResponse(
+        method=method,
+        path=path,
+        status=status,
+        headers=headers,
+        body=body_text,
+        elapsed_s=time.monotonic() - start,
+    )
 
 
 def http_request(
@@ -126,6 +187,9 @@ def http_request(
     headers: dict[str, str] | None = None,
     body: bytes | None = None,
     timeout: float = 10.0,
+    capture_body: bool = False,
+    max_body: int = 200_000,
+    allow_redirects: bool = True,
 ) -> HttpResponse:
     url = base_url.rstrip("/") + path
     full_headers: dict[str, str] = {"User-Agent": _DEFAULT_UA}
@@ -138,20 +202,45 @@ def http_request(
         data=body,
         headers=full_headers,
     )
+    opener = urllib.request.urlopen if allow_redirects else _NO_REDIRECT_OPENER.open
+    start = time.monotonic()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return HttpResponse(method=method, path=path, status=response.status)
+        with opener(request, timeout=timeout) as response:  # noqa: S310
+            return _build_response(
+                method,
+                path,
+                response.status,
+                response,
+                start=start,
+                capture_body=capture_body,
+                max_body=max_body,
+            )
     except urllib.error.HTTPError as exc:
-        return HttpResponse(method=method, path=path, status=exc.code)
+        return _build_response(
+            method,
+            path,
+            exc.code,
+            exc,
+            start=start,
+            capture_body=capture_body,
+            max_body=max_body,
+        )
     except urllib.error.URLError as exc:
         return HttpResponse(
             method=method,
             path=path,
             status=None,
             error=str(exc.reason),
+            elapsed_s=time.monotonic() - start,
         )
     except (TimeoutError, OSError) as exc:
-        return HttpResponse(method=method, path=path, status=None, error=str(exc))
+        return HttpResponse(
+            method=method,
+            path=path,
+            status=None,
+            error=str(exc),
+            elapsed_s=time.monotonic() - start,
+        )
 
 
 @dataclass
@@ -211,7 +300,7 @@ def run_hydra(
     timeout: int,
     username_wordlist: Path,
     password_wordlist: Path,
-    results: "ResultsDir",
+    results: ResultsDir,
 ) -> tuple[int, int]:
     output_file = results.file("hydra-results.txt")
     output_log = results.file("hydra.log")

