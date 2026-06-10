@@ -1,14 +1,13 @@
 """Canary /.env (US-11).
 
-Sert un faux fichier .env à credentials décoy et déclenche une alerte CRITICAL
-poussée vers Redis, en plus de l'event canary_triggered.
+Sert un faux fichier .env à credentials décoy et émet un événement
+`canary_triggered` de sévérité CRITICAL (JSONL → Fluent Bit, US-17).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from alerts.redis_client import push_alert
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
@@ -44,5 +43,4 @@ async def dotenv_canary(request: Request) -> PlainTextResponse:
         },
     )
     emit(event)
-    push_alert(event)
     return PlainTextResponse(content)
