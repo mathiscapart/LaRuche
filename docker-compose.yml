@@ -71,6 +71,29 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # Honeypot HTTP (EPIC-2) : émulation WordPress.
+  honeypot-http:
+    build: ./honeypots/http
+    image: qualite863/honeypot-http:latest
+    container_name: honeypot-http
+    restart: unless-stopped
+    # 80 (HTTP standard, crédibilité) et 8080 (cible des scripts d'attaque).
+    # Le honeypot écoute en interne sur 8080 (port non privilégié -> non-root).
+    ports:
+      - "80:8080"
+      - "8080:8080"
+    environment:
+      HONEYPOT_HOST: "prod-srv-01"
+      HTTP_LOG_FILE: "/var/log/honeypot/http.jsonl"
+      # Comptes faibles acceptés par le faux login WordPress (US-09 / hardening).
+      WP_ALLOWED_CREDENTIALS: "admin:admin,admin:admin123,administrator:password123"
+    # Volume commun : le honeypot y écrit ses logs JSONL (RW).
+    volumes:
+      - honeypot_logs:/var/log/honeypot
+    # Durcissement : conteneur sans privilèges supplémentaires.
+    security_opt:
+      - no-new-privileges:true
+
   # US-17 : centralisation des logs via Fluent Bit.
   fluent-bit:
     image: fluent/fluent-bit:3.1.9
@@ -79,7 +102,9 @@ services:
     depends_on:
       - honeypot-ssh
       - honeypot-ftp
+      - honeypot-http
       - openobserve
+      - analyzer
     environment:
       # Identifiants d'ingestion OpenObserve (US-19), injectés dans la conf via ${...}.
       OPENOBSERVE_USER: "admin@laruche.local"
@@ -112,6 +137,36 @@ services:
       - "5080:5080"
     volumes:
       - openobserve_data:/data
+    security_opt:
+      - no-new-privileges:true
+
+  # Analyzer (EPIC-4) : enrichit les events (GeoIP / AbuseIPDB / GreyNoise) +
+  # profil comportemental, et écrit les events enrichis pour Fluent Bit -> OpenObserve.
+  analyzer:
+    build:
+      context: .
+      dockerfile: analyzer/Dockerfile
+    image: qualite863/analyzer:latest
+    container_name: analyzer
+    restart: unless-stopped
+    depends_on:
+      - honeypot-ssh
+      - honeypot-ftp
+      - honeypot-http
+    environment:
+      ANALYZER_LOG_DIR: "/var/log/honeypot"
+      ANALYZER_ENRICHED_OUTPUT: "/var/log/honeypot/enriched/events.jsonl"
+      ANALYZER_INTERVAL: "10"
+      # Clés API fournies par l'école (vides => enrichissement neutre, sans appel réseau).
+      ABUSEIPDB_API_KEY: "${ABUSEIPDB_API_KEY:-}"
+      GREYNOISE_API_KEY: "${GREYNOISE_API_KEY:-}"
+      GEOIP_CITY_DB: "/data/geoip/GeoLite2-City.mmdb"
+      GEOIP_ASN_DB: "/data/geoip/GeoLite2-ASN.mmdb"
+    volumes:
+      # Lit le JSONL brut et écrit l'enrichi dans le même volume (sous enriched/).
+      - honeypot_logs:/var/log/honeypot
+      # Bases MaxMind GeoLite2 à fournir (sinon GeoIP renvoie des champs vides).
+      - ./data/geoip:/data/geoip:ro
     security_opt:
       - no-new-privileges:true
 
