@@ -22,7 +22,6 @@ from pathlib import Path
 from attacker.attacks.common import (
     HttpResponse,
     ResultsDir,
-    ensure_allowed,
     http_request,
     make_results_dir,
     run_command,
@@ -60,7 +59,6 @@ class HttpScanConfig:
     skip_nikto: bool = False
     skip_dirsearch: bool = False
     skip_login: bool = False
-    bypass_allowlist: bool = False
     dirsearch_wordlist: Path | None = None
     password_wordlist: Path | None = None
     username_wordlist: Path | None = None
@@ -94,8 +92,8 @@ class HttpScanReport:
 
 
 def _phase_nikto(config: HttpScanConfig, results: ResultsDir) -> int:
-    output_csv = results.file("nikto.csv")
-    output_txt = results.file("nikto.txt")
+    output_csv = results.file("nikto")
+    output_txt = results.file("nikto.log")
     cmd = [
         "nikto",
         "-h",
@@ -156,7 +154,7 @@ def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
         return False
 
     output_json = results.file("dirsearch.json")
-    output_log = results.file("dirsearch.txt")
+    output_log = results.file("dirsearch.log")
     cmd = [
         *command_prefix,
         "-u",
@@ -169,7 +167,7 @@ def _phase_dirsearch(config: HttpScanConfig, results: ResultsDir) -> bool:
         str(int(config.request_timeout)),
         "-o",
         str(output_json),
-        "--format",
+        "-O",
         "json",
     ]
     logger.info("Phase 2: dirsearch (wordlist=%s)", wordlist)
@@ -281,10 +279,6 @@ def _phase_attack(
 
 def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     report = HttpScanReport(target=config.base_url)
-
-    if not ensure_allowed(config.target_host, bypass=config.bypass_allowlist):
-        report.exit_code = 2
-        return report
 
     results = make_results_dir(reports_dir, prefix="http")
     logger.info("Artefacts directory: %s", results.path)

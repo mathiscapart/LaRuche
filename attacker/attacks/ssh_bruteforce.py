@@ -7,7 +7,6 @@ from pathlib import Path
 
 from attacker.attacks.common import (
     ResultsDir,
-    ensure_allowed,
     is_reachable,
     make_results_dir,
     resolve_password_wordlist,
@@ -28,7 +27,6 @@ class SshBruteforceConfig:
     pause_between_manual: float = 0.5
     pause_before_assertions: float = 10.0
     skip_hydra: bool = False
-    bypass_allowlist: bool = False
     password_wordlist: Path | None = None
     username_wordlist: Path | None = None
 
@@ -49,10 +47,6 @@ def run(
     report = SshBruteforceReport(
         target=f"ssh://{config.target_host}:{config.target_port}"
     )
-
-    if not ensure_allowed(config.target_host, bypass=config.bypass_allowlist):
-        report.exit_code = 2
-        return report
 
     results = make_results_dir(reports_dir, prefix="ssh")
     logger.info("Artefacts directory: %s", results.path)

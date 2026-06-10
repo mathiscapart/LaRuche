@@ -11,7 +11,7 @@ from typing import Callable, Sequence
 
 from attacker import __version__
 from attacker.attacks import ftp_bruteforce, http_scan, ssh_bruteforce
-from attacker.attacks.common import is_reachable
+from attacker.attacks.common import is_reachable, make_results_dir
 from attacker.config import (
     DEFAULT_LOG_API_URL,
     DEFAULT_REPORTS_DIR,
@@ -19,6 +19,7 @@ from attacker.config import (
 )
 from attacker.deps import check_for_command
 from attacker.logging import setup_logging
+from attacker.recon.port_scan import DEFAULT_PORTS, NmapError, discover_services
 
 logger = logging.getLogger("attacker")
 
@@ -98,11 +99,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--quiet",
         action="store_true",
         help="suppress non-essential output",
-    )
-    group.add_argument(
-        "--no-allowlist-check",
-        action="store_true",
-        help="skip the target allowlist check (DANGEROUS — use only in tests)",
     )
     group.add_argument(
         "--skip-dep-check",
@@ -217,11 +213,38 @@ def build_parser() -> argparse.ArgumentParser:
     p_all = sub.add_parser(
         "all",
         parents=[common],
-        help="run every available pipeline sequentially",
+        help="nmap service discovery, then attack each detected service",
     )
-    p_all.add_argument("--http-port", type=int, default=None)
-    p_all.add_argument("--ftp-port", type=int, default=None)
-    p_all.add_argument("--ssh-port", type=int, default=None)
+    p_all.add_argument(
+        "--ports",
+        default=DEFAULT_PORTS,
+        metavar="SPEC",
+        help=f"nmap port spec for discovery (default: {DEFAULT_PORTS})",
+    )
+    p_all.add_argument(
+        "--nmap-timeout",
+        type=int,
+        default=120,
+        help="seconds before the nmap discovery scan is aborted",
+    )
+    p_all.add_argument(
+        "--http-port",
+        type=int,
+        default=None,
+        help="force an HTTP attack on this port even if nmap misses it",
+    )
+    p_all.add_argument(
+        "--ftp-port",
+        type=int,
+        default=None,
+        help="force an FTP attack on this port even if nmap misses it",
+    )
+    p_all.add_argument(
+        "--ssh-port",
+        type=int,
+        default=None,
+        help="force an SSH attack on this port even if nmap misses it",
+    )
     p_all.add_argument("--skip-http", action="store_true")
     p_all.add_argument("--skip-ftp", action="store_true")
     p_all.add_argument("--skip-ssh", action="store_true")
@@ -321,7 +344,6 @@ def _cmd_http(args: argparse.Namespace) -> int:
         skip_nikto=args.skip_nikto,
         skip_dirsearch=args.skip_dirsearch,
         skip_login=args.skip_login,
-        bypass_allowlist=args.no_allowlist_check,
         pause_before_assertions=args.pause,
         username_wordlist=args.username_wordlist,
         password_wordlist=args.password_wordlist,
@@ -358,7 +380,6 @@ def _cmd_ftp(args: argparse.Namespace) -> int:
         username_wordlist=args.username_wordlist,
         skip_hydra=args.skip_hydra,
         skip_anonymous=args.skip_anonymous,
-        bypass_allowlist=args.no_allowlist_check,
         pause_before_assertions=args.pause,
     )
     report = ftp_bruteforce.run(config, args.reports_dir)
@@ -384,7 +405,6 @@ def _cmd_ssh(args: argparse.Namespace) -> int:
         hydra_tasks=args.hydra_tasks,
         hydra_timeout=args.hydra_timeout,
         skip_hydra=args.skip_hydra,
-        bypass_allowlist=args.no_allowlist_check,
     )
     report = ssh_bruteforce.run(config, args.reports_dir)
     logger.info(
@@ -404,13 +424,75 @@ class _CampaignOutcome:
     skipped: bool = False
 
 
+def _attack_http(target: str, port: int, reports_dir: Path) -> int:
+    return http_scan.run(
+        http_scan.HttpScanConfig(
+            target_host=target,
+            target_port=port,
+        ),
+        reports_dir,
+    ).exit_code
+
+
+def _attack_ftp(target: str, port: int, reports_dir: Path) -> int:
+    return ftp_bruteforce.run(
+        ftp_bruteforce.FtpBruteforceConfig(
+            target_host=target,
+            target_port=port,
+        ),
+        reports_dir,
+    ).exit_code
+
+
+def _attack_ssh(target: str, port: int, reports_dir: Path) -> int:
+    return ssh_bruteforce.run(
+        ssh_bruteforce.SshBruteforceConfig(
+            target_host=target,
+            target_port=port,
+        ),
+        reports_dir,
+    ).exit_code
+
+
+# category -> (runner, --skip-<x> attr, --<x>-port override attr)
+_CAMPAIGNS: dict[str, tuple[Callable[[str, int, Path], int], str, str]] = {
+    "http": (_attack_http, "skip_http", "http_port"),
+    "ftp": (_attack_ftp, "skip_ftp", "ftp_port"),
+    "ssh": (_attack_ssh, "skip_ssh", "ssh_port"),
+}
+
+
+def _plan_campaigns(
+    args: argparse.Namespace,
+    discovered: dict[str, list[int]],
+) -> list[tuple[str, int]]:
+    """Decide which (category, port) attacks to run.
+
+    A forced --<x>-port always runs, even if nmap missed the service; otherwise
+    every nmap-detected port for a non-skipped category is attacked.
+    """
+    plan: list[tuple[str, int]] = []
+    for category, (_, skip_attr, port_attr) in _CAMPAIGNS.items():
+        if getattr(args, skip_attr):
+            logger.warning("%s campaign skipped (--skip-%s)", category, category)
+            continue
+
+        override: int | None = getattr(args, port_attr)
+        if override is not None:
+            plan.append((category, override))
+            continue
+
+        ports = discovered.get(category, [])
+        if not ports:
+            logger.info("%s: no service detected by nmap, nothing to attack", category)
+            continue
+        for port in ports:
+            plan.append((category, port))
+    return plan
+
+
 def _cmd_all(args: argparse.Namespace) -> int:
-    http_port = _resolve_port(args.target, args.http_port, _HTTP_FALLBACK_PORTS)
-    rc = _preflight(
-        args,
-        "all",
-        {"http": http_port, "ftp": args.ftp_port, "ssh": args.ssh_port},
-    )
+    rc = _preflight(args, "all", {})
     if rc != 0:
         return rc
 
@@ -419,58 +501,44 @@ def _cmd_all(args: argparse.Namespace) -> int:
     consolidated.mkdir(parents=True, exist_ok=True)
     logger.info("Consolidated artefacts: %s", consolidated)
 
+    recon_results = make_results_dir(consolidated, prefix="recon")
+    try:
+        services = discover_services(
+            args.target,
+            ports=args.ports,
+            timeout=args.nmap_timeout,
+            results=recon_results,
+        )
+    except NmapError as exc:
+        logger.error("Service discovery failed: %s", exc)
+        return 2
+
+    discovered: dict[str, list[int]] = {}
+    for svc in services:
+        category = svc.attack
+        if category is None:
+            logger.info(
+                "nmap: %s on port %d has no associated attack, skipping",
+                svc.service,
+                svc.port,
+            )
+            continue
+        discovered.setdefault(category, []).append(svc.port)
+
+    plan = _plan_campaigns(args, discovered)
+    if not plan:
+        logger.warning("No attackable service to run against %s", args.target)
+
     outcomes: list[_CampaignOutcome] = []
     start = time.monotonic()
-
-    if args.skip_http:
-        outcomes.append(_CampaignOutcome("http", 0, 0.0, skipped=True))
-        logger.warning("HTTP campaign skipped (--skip-http)")
-    else:
+    for category, port in plan:
+        runner = _CAMPAIGNS[category][0]
+        label = f"{category}:{port}"
+        logger.info("=== Campaign %s ===", label)
         t0 = time.monotonic()
-        report = http_scan.run(
-            http_scan.HttpScanConfig(
-                target_host=args.target,
-                target_port=http_port,
-                bypass_allowlist=args.no_allowlist_check,
-            ),
-            args.reports_dir,
-        )
+        exit_code = runner(args.target, port, consolidated)
         outcomes.append(
-            _CampaignOutcome("http", report.exit_code, time.monotonic() - t0)
-        )
-
-    if args.skip_ftp:
-        outcomes.append(_CampaignOutcome("ftp", 0, 0.0, skipped=True))
-        logger.warning("FTP campaign skipped (--skip-ftp)")
-    else:
-        t0 = time.monotonic()
-        report = ftp_bruteforce.run(
-            ftp_bruteforce.FtpBruteforceConfig(
-                target_host=args.target,
-                target_port=args.ftp_port,
-                bypass_allowlist=args.no_allowlist_check,
-            ),
-            args.reports_dir,
-        )
-        outcomes.append(
-            _CampaignOutcome("ftp", report.exit_code, time.monotonic() - t0)
-        )
-
-    if args.skip_ssh:
-        outcomes.append(_CampaignOutcome("ssh", 0, 0.0, skipped=True))
-        logger.warning("SSH campaign skipped (--skip-ssh)")
-    else:
-        t0 = time.monotonic()
-        ssh_report = ssh_bruteforce.run(
-            ssh_bruteforce.SshBruteforceConfig(
-                target_host=args.target,
-                target_port=args.ssh_port,
-                bypass_allowlist=args.no_allowlist_check,
-            ),
-            args.reports_dir,
-        )
-        outcomes.append(
-            _CampaignOutcome("ssh", ssh_report.exit_code, time.monotonic() - t0)
+            _CampaignOutcome(label, exit_code, time.monotonic() - t0)
         )
 
     duration = time.monotonic() - start

@@ -76,6 +76,9 @@ _BINARIES_HTTP: tuple[BinarySpec, ...] = (
 )
 _BINARIES_FTP: tuple[BinarySpec, ...] = (BinarySpec("hydra", "FTP brute-force driver"),)
 _BINARIES_SSH: tuple[BinarySpec, ...] = (BinarySpec("hydra", "SSH brute-force driver"),)
+_BINARIES_RECON: tuple[BinarySpec, ...] = (
+    BinarySpec("nmap", "service discovery", version_arg="--version"),
+)
 
 
 def check_python(min_major: int = 3, min_minor: int = 10) -> DepResult:
@@ -225,6 +228,9 @@ def check_for_command(
     report.add(check_python())
 
     binaries: list[BinarySpec] = []
+    if command in ("all", "check"):
+        binaries.extend(_BINARIES_RECON)
+
     if command in ("http", "all", "check"):
         binaries.extend(_BINARIES_HTTP)
 
