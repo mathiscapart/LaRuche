@@ -53,6 +53,7 @@ services:
       FTP_ANONYMOUS: "true"
       FTP_DECOY_ROOT: "/srv/ftp"
       FTP_PASV_MIN: "30000"
+      #FTP_MASQUERADE_ADDRESS: "127.0.0.1"
       FTP_PASV_MAX: "30009"
       # IP publique à annoncer en mode passif derrière un NAT/Docker, à régler
       # selon l'hôte/la DMZ (sinon l'adresse locale de la connexion est utilisée).
