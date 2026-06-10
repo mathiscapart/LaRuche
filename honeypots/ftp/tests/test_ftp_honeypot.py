@@ -14,9 +14,15 @@ from pathlib import Path
 
 import pytest
 from config import Credential, load_config
-from detection import SessionProfiler, classify_command, is_recon
+from detection import (
+    SessionProfiler,
+    classify_command,
+    classify_credential_reuse,
+    classify_download,
+    is_recon,
+)
 from events import build_event, normalize_ipv4
-from filesystem import DECOY_TREE, decoy_dirs, materialize
+from filesystem import DECOY_TREE, decoy_dirs, is_canary, materialize
 from jsonschema import Draft7Validator
 
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / "docs" / "event.schema.json"
@@ -67,6 +73,18 @@ def test_all_event_types_conform_to_schema(validator: Draft7Validator) -> None:
             **common,
         ),
         build_event(
+            event_type="auth_success",
+            payload={"username": "ubuntu", "password": "ubuntu", "auth_method": "password"},
+            classification=classify_credential_reuse(),
+            **common,
+        ),
+        build_event(
+            event_type="file_download",
+            payload={"filename": "credentials_old.txt", "path": "/conf/credentials_old.txt"},
+            classification=classify_download("/conf/credentials_old.txt", is_canary=True),
+            **common,
+        ),
+        build_event(
             event_type="disconnection",
             payload={
                 "command_count": 3,
@@ -113,6 +131,41 @@ def test_duplicate_username_keeps_first_password() -> None:
     by_user = {c.username: c.password for c in creds}
     assert by_user["ftp"] == "first"
     assert by_user["backup"] == "b"
+
+
+# --- réutilisation des identifiants SSH (captures maximales) -----------------
+def test_ssh_credentials_are_accepted() -> None:
+    config = load_config()
+    # Identifiants propres au honeypot SSH, désormais acceptés aussi sur le FTP.
+    assert config.is_allowed("ubuntu", "ubuntu") is True
+    assert config.is_allowed("user", "123456") is True
+    # Identifiant partagé SSH + FTP.
+    assert config.is_allowed("admin", "admin123") is True
+
+
+def test_ssh_credential_reuse_is_detected() -> None:
+    config = load_config()
+    assert config.is_ssh_credential("ubuntu", "ubuntu") is True
+    assert config.is_ssh_credential("admin", "admin123") is True
+    # Compte purement FTP : pas une réutilisation SSH.
+    assert config.is_ssh_credential("ftp", "ftp") is False
+    # root n'est jamais considéré.
+    assert config.is_ssh_credential("root", "toor") is False
+
+
+def test_accepted_credentials_dedup_by_username() -> None:
+    config = load_config()
+    usernames = [c.username for c in config.accepted_credentials()]
+    assert usernames.count("admin") == 1  # FTP prime ; admin:P@ssw0rd (SSH) ignoré
+    assert "root" not in usernames
+    assert {"ubuntu", "user"} <= set(usernames)  # comptes SSH uniques présents
+
+
+def test_credential_reuse_classification() -> None:
+    cls = classify_credential_reuse()
+    assert cls["category"] == "CREDENTIAL_STUFFING"
+    assert cls["severity"] == "high"
+    assert "ssh_credential_reuse" in cls["tags"]
 
 
 # --- classification de la reconnaissance ------------------------------------
@@ -167,6 +220,41 @@ def test_decoy_dirs_matches_acceptance_criteria() -> None:
 def test_decoy_tree_has_required_folders() -> None:
     for folder in ("backup", "conf", "exports"):
         assert isinstance(DECOY_TREE[folder], dict)
+
+
+# --- fichiers canary (détection d'exfiltration) ------------------------------
+def test_required_canary_files_exist(tmp_path) -> None:
+    base = Path(materialize(str(tmp_path)))
+    # Les 3 fichiers décoy exigés par les critères d'acceptation.
+    assert (base / "backup" / "backup_2024-06-01.tar.gz").is_file()
+    assert (base / "backup" / "db_dump.sql.gz").is_file()
+    assert (base / "conf" / "credentials_old.txt").is_file()
+
+
+def test_is_canary_matches_sensitive_files() -> None:
+    for path in (
+        "/backup/backup_2024-06-01.tar.gz",
+        "/backup/db_dump.sql.gz",
+        "/conf/credentials_old.txt",
+    ):
+        assert is_canary(path), path
+    # Fichiers non sensibles : pas canary.
+    assert not is_canary("/backup/NOTES.txt")
+    assert not is_canary("/conf/nginx.conf")
+    assert not is_canary("/README.txt")
+
+
+def test_canary_download_is_critical() -> None:
+    cls = classify_download("/conf/credentials_old.txt", is_canary=True)
+    assert cls is not None
+    assert cls["category"] == "CANARY_TRIGGERED"
+    assert cls["severity"] == "critical"
+    assert "canary_file" in cls["tags"]
+    assert "credentials_old.txt" in cls["tags"]  # filename inclus pour le pivot SIEM
+
+
+def test_non_canary_download_not_classified() -> None:
+    assert classify_download("/backup/NOTES.txt", is_canary=False) is None
 
 
 # --- profilage de session ----------------------------------------------------

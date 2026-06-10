@@ -88,10 +88,26 @@ _SALARY_CSV = (
     "E0067,Garnier A.,SRE,64000\n"
 )
 
+# Appât d'identifiants "oubliés" : crédible pour un humain, mais valeurs
+# synthétiques (``ChangeMe``) ne déclenchant pas un scanner de secrets. Son
+# téléchargement est un signal d'exfiltration majeur (canary).
+_CREDENTIALS_OLD = (
+    "# Anciens accès de service — rotation 2023 (NE PAS DIFFUSER)\n"
+    "# Laissé ici par erreur, à migrer vers le coffre interne.\n"
+    "# service     compte         mot_de_passe\n"
+    "ftp           deploy         Depl0y_OLD_ChangeMe\n"
+    "postgres      app_prod       Pr0d_DB_ChangeMe_2024\n"
+    "smtp          noreply        Mail_ChangeMe_2023\n"
+    "vpn-backup    svc-backup     Vpn_ChangeMe_2023\n"
+)
+
 # Arbre leurre : un dict = un dossier ; une valeur texte = un fichier.
 DECOY_TREE: dict[str, object] = {
     "README.txt": _README,
     "backup": {
+        # Fichiers canary (appâts téléchargeables, cf. CANARY_FILES).
+        "backup_2024-06-01.tar.gz": "gzip backup placeholder — /var/www/app + appdb_prod\n",
+        "db_dump.sql.gz": "-- dump PostgreSQL appdb_prod (tronqué)\n",
         "db_prod_2025-05-30.sql.gz": "-- dump PostgreSQL (tronqué)\n",
         "www_2025-05-30.tar.gz": "binary backup placeholder\n",
         "NOTES.txt": _BACKUP_NOTES,
@@ -100,6 +116,8 @@ DECOY_TREE: dict[str, object] = {
         "nginx.conf": _NGINX_CONF,
         "database.yml": _DATABASE_YML,
         ".env": _APP_ENV,
+        # Fichier canary (appât d'identifiants, cf. CANARY_FILES).
+        "credentials_old.txt": _CREDENTIALS_OLD,
     },
     "exports": {
         "clients_export_2026Q1.csv": _CLIENTS_CSV,
@@ -136,3 +154,23 @@ def materialize(root: str) -> str:
 def decoy_dirs() -> list[str]:
     """Chemins FTP des dossiers leurres de premier niveau (``/backup`` ...)."""
     return [f"/{name}" for name, node in DECOY_TREE.items() if isinstance(node, dict)]
+
+
+# Fichiers "canary" : appâts sensibles dont le TÉLÉCHARGEMENT (RETR) est un
+# signal fort d'exfiltration de données. Tout téléchargement de l'un d'eux est
+# qualifié ``CANARY_TRIGGERED`` / ``critical`` (cf. detection.classify_download).
+# Chemins exprimés en vue FTP (côté attaquant), pas en chemins disque.
+CANARY_FILES: frozenset[str] = frozenset(
+    {
+        "/backup/backup_2024-06-01.tar.gz",
+        "/backup/db_dump.sql.gz",
+        "/conf/credentials_old.txt",
+        "/conf/.env",
+        "/conf/database.yml",
+    }
+)
+
+
+def is_canary(ftp_path: str) -> bool:
+    """Vrai si le chemin FTP désigne un fichier canary (appât sensible)."""
+    return ftp_path in CANARY_FILES

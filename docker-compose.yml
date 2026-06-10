@@ -50,6 +50,10 @@ services:
       FTP_BANNER: "(vsFTPd 3.0.3)"
       # Comptes faibles acceptés. root est toujours refusé par le code.
       FTP_ALLOWED_CREDENTIALS: "admin:admin123,ftp:ftp,backup:Backup2024,deploy:deploy2023"
+      # Identifiants du honeypot SSH, acceptés AUSSI ici pour capturer leur
+      # réutilisation SSH->FTP (tag ssh_credential_reuse, mouvement latéral).
+      # À garder synchronisé avec SSH_ALLOWED_CREDENTIALS du service honeypot-ssh.
+      FTP_SSH_CREDENTIALS: "admin:admin123,admin:P@ssw0rd,ubuntu:ubuntu,user:123456,deploy:deploy2023"
       # Accès anonyme autorisé : maximise la capture de la reconnaissance.
       FTP_ANONYMOUS: "true"
       FTP_DECOY_ROOT: "/srv/ftp"

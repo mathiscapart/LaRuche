@@ -15,6 +15,8 @@ Variables reconnues
 - ``FTP_HOSTNAME``             hostname simulé (défaut ``prod-srv-01``)
 - ``FTP_BANNER``               bannière annoncée après 220 (défaut ``(vsFTPd 3.0.3)``)
 - ``FTP_ALLOWED_CREDENTIALS``  couples acceptés ``user:pass,user:pass``
+- ``FTP_SSH_CREDENTIALS``      creds du honeypot SSH, acceptés aussi (capture de
+                               la réutilisation SSH->FTP, mouvement latéral)
 - ``FTP_ANONYMOUS``            accepte l'anonyme (défaut ``true``)
 - ``FTP_DECOY_ROOT``           racine matérialisée de l'arbre leurre
                                (défaut ``/srv/ftp``)
@@ -32,6 +34,12 @@ from dataclasses import dataclass, field
 # Comptes faibles mais réalistes. FTP n'autorise qu'un mot de passe par compte
 # (un seul username) ; le login root est toujours refusé (cf. is_allowed).
 DEFAULT_CREDENTIALS = "admin:admin123,ftp:ftp,backup:Backup2024,deploy:deploy2023"
+
+# Identifiants acceptés par le honeypot SSH (cf. SSH_ALLOWED_CREDENTIALS). On les
+# accepte AUSSI sur le FTP : un attaquant ayant moissonné des creds SSH puis les
+# rejouant ici est connecté (capture maximale) ET tagué « réutilisation SSH ».
+# À garder synchronisé avec SSH_ALLOWED_CREDENTIALS (cf. FTP_SSH_CREDENTIALS).
+SSH_CREDENTIALS = "admin:admin123,admin:P@ssw0rd,ubuntu:ubuntu,user:123456,deploy:deploy2023"
 
 
 @dataclass(frozen=True)
@@ -51,6 +59,7 @@ class Config:
     hostname: str = "prod-srv-01"
     banner: str = "(vsFTPd 3.0.3)"
     allowed_credentials: list[Credential] = field(default_factory=list)
+    ssh_credentials: list[Credential] = field(default_factory=list)
     anonymous_enabled: bool = True
     decoy_root: str = "/srv/ftp"
     pasv_min: int = 30000
@@ -58,13 +67,39 @@ class Config:
     masquerade_address: str | None = None
     log_file: str | None = "/var/log/honeypot/ftp.jsonl"
 
+    def accepted_credentials(self) -> list[Credential]:
+        """Comptes effectivement acceptés : comptes FTP + creds SSH (réutilisation),
+        dédupliqués par username (FTP n'autorise qu'un mot de passe par compte),
+        root exclu. Les comptes FTP priment en cas de collision de username."""
+        merged: list[Credential] = []
+        seen: set[str] = set()
+        for cred in (*self.allowed_credentials, *self.ssh_credentials):
+            if cred.username == "root" or cred.username in seen:
+                continue
+            seen.add(cred.username)
+            merged.append(cred)
+        return merged
+
     def is_allowed(self, username: str, password: str) -> bool:
-        """Vrai si le couple est accepté. Le compte root est toujours refusé."""
+        """Vrai si le couple est accepté (compte FTP ou cred SSH réutilisé).
+        Le compte root est toujours refusé."""
         if username == "root":
             return False
         return any(
             c.username == username and c.password == password
-            for c in self.allowed_credentials
+            for c in self.accepted_credentials()
+        )
+
+    def is_ssh_credential(self, username: str, password: str) -> bool:
+        """Vrai si le couple correspond à un identifiant du honeypot SSH.
+
+        Sert à taguer la réutilisation de creds SSH sur le FTP (mouvement
+        latéral / credential stuffing inter-services)."""
+        if username == "root":
+            return False
+        return any(
+            c.username == username and c.password == password
+            for c in self.ssh_credentials
         )
 
 
@@ -103,6 +138,9 @@ def load_config() -> Config:
         banner=os.getenv("FTP_BANNER", "(vsFTPd 3.0.3)"),
         allowed_credentials=_parse_credentials(
             os.getenv("FTP_ALLOWED_CREDENTIALS", DEFAULT_CREDENTIALS)
+        ),
+        ssh_credentials=_parse_credentials(
+            os.getenv("FTP_SSH_CREDENTIALS", SSH_CREDENTIALS)
         ),
         anonymous_enabled=_env_bool("FTP_ANONYMOUS", default=True),
         decoy_root=os.getenv("FTP_DECOY_ROOT", "/srv/ftp"),

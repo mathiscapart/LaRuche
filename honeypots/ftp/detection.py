@@ -77,6 +77,35 @@ def classify_command(cmd: str, arg: str = "", cwd: str = "/") -> dict | None:
     }
 
 
+def classify_download(path: str, *, is_canary: bool) -> dict | None:
+    """Construit le bloc ``classification`` d'un événement ``file_download``.
+
+    Le téléchargement d'un fichier canary (appât sensible) est un signal
+    d'exfiltration critique. Les autres téléchargements ne sont pas qualifiés
+    ici : l'événement ``file_download`` (IP + filename + timestamp) suffit au
+    SIEM pour les tracer."""
+    if not is_canary:
+        return None
+    filename = path.rsplit("/", 1)[-1]
+    return {
+        "category": "CANARY_TRIGGERED",
+        "severity": "critical",
+        "confidence": 0.95,
+        "tags": ["canary_file", "data_exfiltration", filename],
+    }
+
+
+def classify_credential_reuse() -> dict:
+    """Bloc ``classification`` d'un login réussi avec des identifiants du
+    honeypot SSH : réutilisation de creds inter-services (mouvement latéral)."""
+    return {
+        "category": "CREDENTIAL_STUFFING",
+        "severity": "high",
+        "confidence": 0.9,
+        "tags": ["ssh_credential_reuse", "credential_reuse"],
+    }
+
+
 @dataclass
 class SessionProfiler:
     """Accumule la séquence de commandes et le timing pour profiler la session.

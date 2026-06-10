@@ -23,9 +23,14 @@ import time
 import uuid
 
 from config import Config, load_config
-from detection import SessionProfiler, classify_command
+from detection import (
+    SessionProfiler,
+    classify_command,
+    classify_credential_reuse,
+    classify_download,
+)
 from events import EventSink, build_event
-from filesystem import materialize
+from filesystem import is_canary, materialize
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
@@ -46,6 +51,7 @@ class LoggingFTPHandler(FTPHandler):
     # Injectés avant le run (une seule instance de sink pour tout le process).
     event_sink: EventSink | None = None
     honeypot_host: str = "prod-srv-01"
+    config: Config | None = None
 
     # --- cycle de vie de la connexion ------------------------------------
     def on_connect(self) -> None:
@@ -76,7 +82,15 @@ class LoggingFTPHandler(FTPHandler):
     def on_login(self, username: str) -> None:
         creds = {"username": username, "password": self.password, "auth_method": "password"}
         self._emit("auth_attempt", creds)
-        self._emit("auth_success", creds)
+        # Login réussi avec des identifiants du honeypot SSH -> réutilisation de
+        # creds inter-services (mouvement latéral) : on tague auth_success.
+        cfg = self.config
+        reuse = (
+            cfg is not None
+            and self.password is not None
+            and cfg.is_ssh_credential(username, self.password)
+        )
+        self._emit("auth_success", creds, classify_credential_reuse() if reuse else None)
 
     def on_login_failed(self, username: str, password: str) -> None:
         self._emit(
@@ -87,7 +101,12 @@ class LoggingFTPHandler(FTPHandler):
     # --- transfert --------------------------------------------------------
     def on_file_sent(self, file: str) -> None:
         virtual = self.fs.fs2ftp(file) if self.fs is not None else file
-        self._emit("file_download", {"filename": os.path.basename(file), "path": virtual})
+        # Téléchargement d'un fichier canary -> exfiltration (CANARY_TRIGGERED).
+        self._emit(
+            "file_download",
+            {"filename": os.path.basename(file), "path": virtual},
+            classify_download(virtual, is_canary=is_canary(virtual)),
+        )
 
     # --- capture de TOUTES les commandes (LIST / CWD / PWD / ...) ---------
     # On hooke pre_process_command : on y voit la ligne BRUTE telle que tapée
@@ -134,14 +153,16 @@ class LoggingFTPHandler(FTPHandler):
 
 
 def build_authorizer(config: Config) -> DummyAuthorizer:
-    """Construit l'autorisation : comptes faibles + anonyme, tous en lecture seule.
+    """Construit l'autorisation : comptes faibles + creds SSH réutilisables +
+    anonyme, tous en lecture seule.
 
     Permissions ``elr`` = changer de dossier (e), lister (l), récupérer (r) —
-    aucune écriture. Les logins refusés passent par ``on_login_failed`` et sont
-    donc tout de même capturés.
+    aucune écriture. ``accepted_credentials`` inclut les identifiants du honeypot
+    SSH pour capturer leur réutilisation. Les logins refusés passent par
+    ``on_login_failed`` et sont donc tout de même capturés.
     """
     authorizer = DummyAuthorizer()
-    for cred in config.allowed_credentials:
+    for cred in config.accepted_credentials():
         try:
             authorizer.add_user(cred.username, cred.password, config.decoy_root, perm="elr")
         except ValueError:
@@ -162,6 +183,7 @@ def build_server(config: Config, sink: EventSink) -> FTPServer:
     LoggingFTPHandler.passive_ports = list(range(config.pasv_min, config.pasv_max + 1))
     LoggingFTPHandler.event_sink = sink
     LoggingFTPHandler.honeypot_host = config.hostname
+    LoggingFTPHandler.config = config
 
     server = FTPServer((config.bind_host, config.bind_port), LoggingFTPHandler)
     server.max_cons_per_ip = 0  # un scanner ouvre beaucoup de connexions : on n'en perd aucune.
