@@ -29,6 +29,7 @@ import logging
 import re
 import secrets
 import socket
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,9 +43,12 @@ from attacker.wordlists import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "CooperationVerdict",
     "HoneypotSignal",
     "HoneypotVerdict",
+    "ProtocolSignal",
     "SUSPECT_THRESHOLD",
+    "aggregate_cooperation",
     "analyze_logins",
     "detect_ftp",
     "detect_http",
@@ -261,6 +265,91 @@ def detect_ftp(host: str, port: int, *, timeout: float = 5.0) -> HoneypotVerdict
 # A path no real site serves; a catch-all honeypot answers it with 200 + body.
 _DECOY_PATH_PREFIX = "/zzz-honeypot-probe-"
 
+# --- Decoy-app fingerprints (active "is this real or a lure?" probes) -------
+# A genuine phpinfo() page is tens of KB and always carries these canonical
+# fragments (the Zend credit, the GPL notice, the $_SERVER / configuration
+# dumps, php.net links). A honeypot's hand-written phpinfo decoy reproduces the
+# *look* ("PHP Version" + a table) but not the bulk — so a 200 that claims to be
+# phpinfo() yet misses these is a planted lure, not a real interpreter dump.
+_PHPINFO_LOOKALIKE = re.compile(r"phpinfo\(\)|PHP Version", re.IGNORECASE)
+_PHPINFO_REAL_MARKERS: tuple[str, ...] = (
+    "zend engine",
+    "this program is free software",
+    "php credits",
+    "_server[",
+    "configuration file",
+    "php.net",
+)
+# Classic secret paths. A real, hardened host serves ~none of them with content;
+# a honeypot wired to capture scanners answers many at once (a honeytoken farm).
+_HONEYTOKEN_PATHS: tuple[str, ...] = (
+    "/.env",
+    "/.git/config",
+    "/server-status",
+    "/.aws/credentials",
+    "/config.php.bak",
+    "/wp-config.php.bak",
+)
+
+
+def _probe_decoy_apps(
+    base_url: str, verdict: HoneypotVerdict, *, timeout: float
+) -> None:
+    """Tell a *real* phpinfo / phpMyAdmin apart from a planted decoy.
+
+    These two endpoints are the bait scanners love, so honeypots ship static
+    look-alikes. We fetch them and check for the structural tells a live install
+    cannot fake cheaply: phpinfo's sheer bulk + credits, phpMyAdmin's CSRF token
+    and session cookie.
+    """
+    info = http_request(base_url, "/phpinfo.php", timeout=timeout, capture_body=True)
+    if info.status == 200 and _PHPINFO_LOOKALIKE.search(info.body):
+        body_lc = info.body.lower()
+        # A real phpinfo also leaks the word "honeypot" here if mis-hosted; flag
+        # the canonical signatures against it too.
+        _match_signatures(info.body, _HTTP_SIGNATURES, verdict, "http-signature")
+        real = sum(1 for marker in _PHPINFO_REAL_MARKERS if marker in body_lc)
+        if real < 2 or len(info.body) < 3000:
+            verdict.add(
+                "http-fake-phpinfo",
+                f"/phpinfo.php mimics phpinfo() but is {len(info.body)} bytes with "
+                f"only {real}/{len(_PHPINFO_REAL_MARKERS)} canonical sections — a "
+                "planted decoy, not a real interpreter dump",
+                55,
+            )
+
+    pma = http_request(base_url, "/phpmyadmin/", timeout=timeout, capture_body=True)
+    if pma.status == 200 and re.search(r"phpmyadmin", pma.body, re.IGNORECASE):
+        cookies = pma.header("set-cookie")
+        has_token = bool(re.search(r'name=["\']token["\']', pma.body, re.IGNORECASE))
+        has_pma_cookie = bool(re.search(r"phpmyadmin|pma_", cookies, re.IGNORECASE))
+        if not has_token and not has_pma_cookie:
+            verdict.add(
+                "http-fake-phpmyadmin",
+                "/phpmyadmin/ serves a login page with no CSRF token and no "
+                "phpMyAdmin session cookie — a static decoy, not a live install",
+                50,
+            )
+
+
+def _probe_sensitive_breadth(
+    base_url: str, verdict: HoneypotVerdict, *, timeout: float
+) -> None:
+    """Flag a host that serves *many* classic secret paths — a honeytoken farm."""
+    served: list[str] = []
+    for path in _HONEYTOKEN_PATHS:
+        resp = http_request(base_url, path, timeout=timeout, capture_body=True)
+        if resp.status == 200 and len(resp.body.strip()) > 40:
+            served.append(path)
+
+    if len(served) >= 3:
+        verdict.add(
+            "http-honeytokens",
+            f"{len(served)} classic secret paths all return content "
+            f"({', '.join(served)}); a real host does not expose them all at once",
+            50,
+        )
+
 
 def detect_http(
     base_url: str,
@@ -289,6 +378,9 @@ def detect_http(
             "(catch-all responders are typical of web honeypots)",
             45,
         )
+
+    _probe_decoy_apps(base_url, verdict, timeout=timeout)
+    _probe_sensitive_breadth(base_url, verdict, timeout=timeout)
 
     return verdict
 
@@ -320,3 +412,79 @@ def warn_if_suspected(verdict: HoneypotVerdict, log: logging.Logger) -> bool:
     log.warning("Continuing, but this target is likely instrumented and logging you.")
     log.warning("=" * 64)
     return True
+
+
+# --- Cross-protocol aggregation (the "all" campaign) -----------------------
+# Each extra over-cooperative protocol is strong corroboration: a real host that
+# is simultaneously generous on SSH *and* FTP *and* HTTP is implausible.
+_CROSS_PROTOCOL_BONUS = 25
+
+
+@dataclass(frozen=True)
+class ProtocolSignal:
+    """One protocol's honeypot result, as fed into the cross-protocol view."""
+
+    protocol: str
+    score: int
+    suspected: bool
+    signals: tuple[tuple[str, str, int], ...] = ()
+
+
+@dataclass
+class CooperationVerdict:
+    """Cross-protocol honeypot aggregate built on *expected stinginess*.
+
+    A real, hardened host is **stingy** on every service: auth fails, sensitive
+    files answer 403/404, there is no passwordless root. A honeypot is
+    **generous** — it hands out logins, serves every juicy path and fakes
+    success to keep you engaged. One over-cooperative service can be a single
+    weak box; several over-cooperative services *at once* is the signature of a
+    trap. So confidence escalates with the **breadth** of over-cooperation, not
+    only its depth on one port.
+    """
+
+    protocols: list[ProtocolSignal] = field(default_factory=list)
+
+    @property
+    def cooperative(self) -> list[ProtocolSignal]:
+        return [p for p in self.protocols if p.suspected]
+
+    @property
+    def score(self) -> int:
+        if not self.protocols:
+            return 0
+        base = max(p.score for p in self.protocols)
+        bonus = max(0, len(self.cooperative) - 1) * _CROSS_PROTOCOL_BONUS
+        return min(base + bonus, 100)
+
+    @property
+    def is_suspected(self) -> bool:
+        return self.score >= SUSPECT_THRESHOLD
+
+    def summary(self) -> str:
+        coop = [p.protocol.upper() for p in self.cooperative]
+        total = len(self.protocols)
+        if not coop:
+            return (
+                f"All {total} probed service(s) behaved like a stingy, hardened "
+                "host — no cross-protocol honeypot pattern."
+            )
+        if len(coop) == 1:
+            return (
+                f"Only {coop[0]} looked over-cooperative while the other "
+                f"{total - 1} service(s) behaved normally — possibly one weak "
+                "service rather than a honeypot."
+            )
+        listed = ", ".join(coop)
+        return (
+            f"{listed} are all over-cooperative at once. A hardened host is "
+            "stingy on every service, so this much generosity across "
+            f"{len(coop)} independent protocols is near-conclusive for a honeypot."
+        )
+
+
+def aggregate_cooperation(
+    protocols: Sequence[ProtocolSignal],
+) -> CooperationVerdict:
+    """Combine per-protocol honeypot results into one cross-protocol verdict."""
+    return CooperationVerdict(protocols=list(protocols))

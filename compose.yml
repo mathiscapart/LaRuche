@@ -2,6 +2,17 @@
 # Les honeypots écrivent leurs événements en JSON Lines sur un volume commun
 # (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers
 # OpenObserve (US-19) — pas de SIEM, pas de broker intermédiaire.
+#
+# Ségmentation réseau (US-21) :
+#   - honeypot-front  (bridge)         : surface d'exposition — honeypots,
+#                                        attacker, analyzer (besoin d'accès
+#                                        sortant pour l'enrichissement).
+#   - honeypot-backend (internal:true) : pipeline de collecte / stockage —
+#                                        fluent-bit, openobserve, provisioner.
+# Aucun réseau partagé entre un honeypot et OpenObserve : un conteneur honeypot
+# compromis ne peut donc pas atteindre les données collectées par le réseau.
+# Durcissement appliqué à TOUS les conteneurs : no-new-privileges, read_only
+# (+ tmpfs pour les chemins réellement inscriptibles) et limites de ressources.
 services:
   attacker:
     build:
@@ -10,6 +21,20 @@ services:
     container_name: attacker
     volumes:
       - ./attacker:/app/attacker
+    networks:
+      - honeypot-front
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+          pids: 256
 
   honeypot-ssh:
     build: ./honeypots/ssh
@@ -33,9 +58,21 @@ services:
     # Volume commun : le honeypot y écrit ses logs JSONL (RW).
     volumes:
       - honeypot_logs:/var/log/honeypot
-    # Durcissement : conteneur sans privilèges supplémentaires.
+    # Surface d'exposition uniquement : aucun accès au réseau backend.
+    networks:
+      - honeypot-front
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
 
   honeypot-ftp:
     build: ./honeypots/ftp
@@ -75,9 +112,26 @@ services:
     # Volume commun : le honeypot y écrit ses logs JSONL (RW).
     volumes:
       - honeypot_logs:/var/log/honeypot
-    # Durcissement : conteneur sans privilèges supplémentaires.
+      # Arborescence leurre rematérialisée au démarrage. Volume nommé (et non
+      # tmpfs) car le process tourne en non-root (uid 10001) : un volume hérite
+      # de l'ownership `honey` de l'image, ce qu'un tmpfs root-owned ne permet
+      # pas (os.utime échoue alors avec EPERM sous read_only).
+      - ftp_decoy:/srv/ftp
+    # Surface d'exposition uniquement : aucun accès au réseau backend.
+    networks:
+      - honeypot-front
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
 
   # Honeypot HTTP (EPIC-2) : émulation WordPress.
   honeypot-http:
@@ -98,9 +152,21 @@ services:
     # Volume commun : le honeypot y écrit ses logs JSONL (RW).
     volumes:
       - honeypot_logs:/var/log/honeypot
-    # Durcissement : conteneur sans privilèges supplémentaires.
+    # Surface d'exposition uniquement : aucun accès au réseau backend.
+    networks:
+      - honeypot-front
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
 
   # US-17 : centralisation des logs via Fluent Bit.
   fluent-bit:
@@ -128,8 +194,21 @@ services:
     # Endpoint santé/métriques interne de Fluent Bit.
     ports:
       - "2020:2020"
+    # Pipeline de collecte : forwarde vers OpenObserve par le réseau backend.
+    networks:
+      - honeypot-backend
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
 
   # US-19 : stockage + exploration des événements (dashboards research, pas de SIEM).
   openobserve:
@@ -141,12 +220,32 @@ services:
       ZO_ROOT_USER_EMAIL: "${OPENOBSERVE_USER:-admin@laruche.local}"
       ZO_ROOT_USER_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
       ZO_DATA_DIR: "/data"
+    # Accès aux dashboards depuis l'hôte, restreint à la loopback (esprit DMZ
+    # US-20). Docker ne publie PAS les ports d'un conteneur uniquement attaché
+    # à un réseau `internal` -> openobserve est aussi sur `dashboard-edge`.
     ports:
-      - "5080:5080"
+      - "127.0.0.1:5080:5080"
     volumes:
       - openobserve_data:/data
+    # Stockage des données collectées : réseau backend interne (fluent-bit /
+    # provisioner) + dashboard-edge (publication du port hôte uniquement).
+    # Les honeypots ne sont sur aucun de ces deux réseaux -> inatteignable
+    # depuis un conteneur honeypot compromis.
+    networks:
+      - honeypot-backend
+      - dashboard-edge
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 1G
+          pids: 1024
 
   # US-19 : provisioning automatique des dashboards OpenObserve au démarrage.
   # Conteneur éphémère : attend qu'OpenObserve réponde, (ré)importe les
@@ -167,8 +266,21 @@ services:
     command: ["python", "/provision/provision.py"]
     # Tâche one-shot : pas de redémarrage en boucle une fois l'import fait.
     restart: "no"
+    # Joint OpenObserve sur le réseau backend pour pousser les dashboards.
+    networks:
+      - honeypot-backend
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
 
   # Analyzer (EPIC-4) : enrichit les events (GeoIP / AbuseIPDB / GreyNoise) +
   # profil comportemental, et écrit les events enrichis pour Fluent Bit -> OpenObserve.
@@ -195,13 +307,50 @@ services:
     volumes:
       # Lit le JSONL brut et écrit l'enrichi dans le même volume (sous enriched/).
       - honeypot_logs:/var/log/honeypot
-      # Bases GeoLite2 embarquées dans l'image (multi-stage build CI).
-      # Bind-mount optionnel pour override local (décommenter si besoin) :
+      # Bases GeoLite2 EMBARQUÉES dans l'image (multi-stage build CI, image
+      # privée honeypot-analyzer). PAS de bind-mount ./data/geoip ici : il
+      # masquerait les bases bakées par un dossier hôte vide. Override local
+      # uniquement (fournir les .mmdb puis décommenter) :
       # - ./data/geoip:/data/geoip:ro
+      # Cache SQLite AbuseIPDB / GreyNoise (/app/.cache). Volume nommé pour
+      # rester inscriptible par l'uid non-root sous read_only (cf. honeypot-ftp).
+      - analyzer_cache:/app/.cache
+    # Front : besoin d'un accès sortant pour les API d'enrichissement
+    # (AbuseIPDB / GreyNoise). N'accède jamais à OpenObserve par le réseau.
+    networks:
+      - honeypot-front
+    # Durcissement (US-21) : pas de privilèges, racine en lecture seule.
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+          pids: 256
 
 volumes:
   honeypot_logs:
   fluentbit_state:
   openobserve_data:
+  # Chemins inscriptibles isolés sous read_only (US-21), ownership non-root.
+  ftp_decoy:
+  analyzer_cache:
+
+# Ségmentation réseau (US-21).
+networks:
+  # Surface exposée : honeypots, attacker, analyzer.
+  honeypot-front:
+    driver: bridge
+  # Pipeline de collecte/stockage isolé du monde extérieur (pas de route
+  # sortante) : fluent-bit, openobserve, dashboard-provisioner.
+  honeypot-backend:
+    internal: true
+  # Réseau bridge minimal dédié à la SEULE publication du port dashboard
+  # d'OpenObserve vers l'hôte (impossible depuis un réseau `internal`).
+  # Aucun honeypot n'y est attaché : la segmentation reste intacte.
+  dashboard-edge:
+    driver: bridge
