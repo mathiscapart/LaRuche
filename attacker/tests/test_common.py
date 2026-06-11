@@ -10,7 +10,6 @@ from attacker.attacks import common
 from attacker.attacks.common import (
     BruteforceResult,
     HttpResponse,
-    ResultsDir,
     _collect_headers,
     make_results_dir,
     prompt_yes_no,
