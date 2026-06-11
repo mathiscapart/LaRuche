@@ -91,7 +91,7 @@ Available commands: `check` (dependency pre-flight), `ssh`, `ftp`, `http`, and
 > are **downloaded automatically** by the script on first use, then cached in
 > `attacker/wordlists/`. No manual download is required.
 
-Detailed documentation: [`attacker/README.md`](attacker/README.md).
+Detailed documentation: [`docs/ATTACKER.md`](docs/ATTACKER.md).
 
 ### Running the attacker
 
