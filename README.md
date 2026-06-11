@@ -68,6 +68,88 @@ docker compose run --rm attacker http --target target.example.com
 docker compose run --rm attacker all --target 10.13.0.10 --parallel
 ```
 
+## Déploiement sur un VPS
+
+Sur un VPS public, les honeypots reçoivent de **vraies** attaques (c'est le but).
+Le `compose.yml` est déjà durci (segmentation réseau, `read_only`, limites de
+ressources, OpenObserve bindé sur `127.0.0.1`) ; l'override `compose.prod.yml`
+ajoute les réglages spécifiques au VPS.
+
+### Prérequis
+
+- Dépôt Docker Hub **`qualite863/honeypot-analyzer` en privé** : les bases
+  GeoLite2 y sont embarquées au build (la licence MaxMind interdit la
+  redistribution, d'où le dépôt privé).
+- La CI (push sur `main`) a build et poussé toutes les images.
+- Un **token Docker Hub en lecture seule** (`qualite863`) pour le `pull`.
+
+### 1. Préparation de l'hôte
+
+- **Déplacer le vrai SSH du port 22** (ex. `Port 2200` dans `sshd_config`) et se
+  reconnecter pour vérifier, *avant* de déployer (le honeypot SSH occupe le 22).
+- Installer Docker Engine + le plugin Compose.
+- Pare-feu :
+  - **ouverts** (les honeypots) : `22, 21, 80, 2222, 2121, 8080, 30000-30009`
+  - **restreint à ton IP** : `2200` (SSH admin)
+  - **fermés** : `5080` (OpenObserve) et `2020` (Fluent Bit) — accès par tunnel SSH
+
+### 2. Configuration
+
+```bash
+git clone <url-du-repo> && cd LaRuche
+docker login -u qualite863          # token read-only — requis pour pull l'image privée
+```
+
+Créer un fichier `.env` à la racine (voir `.env.example`) :
+
+```dotenv
+ABUSEIPDB_API_KEY=...
+GREYNOISE_API_KEY=...
+OPENOBSERVE_USER=admin@exemple.com
+OPENOBSERVE_PASSWORD=<mot-de-passe-fort>   # CHANGE le défaut !
+VPS_PUBLIC_IP=203.0.113.10                 # IP publique du VPS (FTP passif)
+```
+
+> La clé de licence MaxMind n'est **pas** nécessaire sur le VPS : GeoLite2 est
+> embarquée dans l'image `honeypot-analyzer`.
+
+### 3. Lancement
+
+```bash
+docker compose -f compose.yml -f compose.prod.yml pull
+docker compose -f compose.yml -f compose.prod.yml up -d --no-build
+```
+
+`--no-build` force l'usage de l'image analyzer **pullée** (GeoLite2 bakée) au lieu
+d'un build local sans les bases. Le service `attacker` (profil `lab`) n'est pas
+démarré ; Fluent Bit et OpenObserve ne sont joignables que via `127.0.0.1`.
+
+### 4. Accès aux dashboards (OpenObserve)
+
+OpenObserve n'est pas exposé publiquement — tunnel SSH :
+
+```bash
+ssh -L 5080:localhost:5080 <user>@<vps> -p 2200
+# puis ouvrir http://localhost:5080
+```
+
+### 5. Vérification
+
+```bash
+docker compose ps
+docker compose logs analyzer | tail     # boucle d'enrichissement toutes les 10 s
+```
+
+Dès les premières attaques publiques, les champs `enrichment` (pays / ASN /
+abuse_score / greynoise) se remplissent et le dashboard **Geo & Threat Intel**
+s'alimente.
+
+### Notes d'exploitation
+
+- **Disque** : `openobserve_data` grossit avec le volume d'attaques — configurer
+  une rétention OpenObserve et surveiller l'espace libre.
+- Vérifier que les conditions d'utilisation de l'hébergeur autorisent un honeypot.
+
 ## Components
 
 ### Honeypots

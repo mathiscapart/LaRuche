@@ -1,0 +1,26 @@
+# Override de PRODUCTION (VPS). À utiliser AVEC compose.yml :
+#
+#   docker login -u qualite863
+#   docker compose -f compose.yml -f compose.prod.yml pull
+#   docker compose -f compose.yml -f compose.prod.yml up -d --no-build
+#
+# Le compose.yml de base est DÉJÀ durci (segmentation réseau, read_only, limites
+# de ressources, OpenObserve bindé sur 127.0.0.1). Cet override ne couvre que les
+# réglages SPÉCIFIQUES au VPS. Requiert Docker Compose >= 2.24 (tag !override).
+services:
+  # Endpoint santé/métriques de Fluent Bit : sur le VPS, jamais public.
+  # !override remplace la liste de ports du compose.yml (au lieu de l'additionner).
+  fluent-bit:
+    ports: !override
+      - "127.0.0.1:2020:2020"
+
+  # FTP passif derrière l'IP publique du VPS : sans masquerade, LIST/RETR
+  # échouent. VPS_PUBLIC_IP doit être défini dans le .env du VPS.
+  honeypot-ftp:
+    environment:
+      FTP_MASQUERADE_ADDRESS: "${VPS_PUBLIC_IP:?VPS_PUBLIC_IP requis dans .env pour le FTP passif}"
+
+  # On PULL l'image privée (GeoLite2 bakée) — jamais de build local, qui
+  # produirait une image sans bases GeoIP. À lancer avec `up --no-build`.
+  analyzer:
+    pull_policy: always

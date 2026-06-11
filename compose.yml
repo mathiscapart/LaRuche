@@ -19,6 +19,10 @@ services:
       context: attacker
     image: qualite863/attacker:latest
     container_name: attacker
+    # Brique offensive — LAB uniquement. profiles=[lab] => NON démarrée par
+    # `docker compose up` (donc jamais en prod/VPS). Reste lançable explicitement :
+    #   docker compose run --rm attacker ssh --target ...
+    profiles: ["lab"]
     volumes:
       - ./attacker:/app/attacker
     networks:
