@@ -5,6 +5,7 @@ import logging
 import sys
 import time
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -13,7 +14,6 @@ from attacker import __version__
 from attacker.attacks import ftp_bruteforce, http_scan, ssh_bruteforce
 from attacker.attacks.common import is_reachable, make_results_dir
 from attacker.config import (
-    DEFAULT_LOG_API_URL,
     DEFAULT_REPORTS_DIR,
     DEFAULT_TARGET,
 )
@@ -73,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument(
         "--target",
         default=DEFAULT_TARGET,
-        help=f"target honeypot IP (default: {DEFAULT_TARGET})",
+        help=f"target IP (default: {DEFAULT_TARGET})",
     )
     group.add_argument(
         "--reports-dir",
@@ -104,29 +104,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-dep-check",
         action="store_true",
         help="skip the dependency pre-flight check",
-    )
-
-    group.add_argument(
-        "--log-api",
-        default=DEFAULT_LOG_API_URL,
-        metavar="URL",
-        help="ingestion API URL (overrides --log-file)",
-    )
-    group.add_argument(
-        "--log-ssh",
-        default="",
-        metavar="USER@HOST",
-        help="fetch logs via SSH (overrides --log-file and --log-api)",
-    )
-    group.add_argument(
-        "--log-ssh-path",
-        default="/logs/all-events.jsonl",
-        help="remote JSONL path used with --log-ssh",
-    )
-    group.add_argument(
-        "--skip-assertions",
-        action="store_true",
-        help="do not validate the honeypot logs after probing",
     )
 
     sub = parser.add_subparsers(dest="command", metavar="COMMAND", required=True)
@@ -197,6 +174,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_ftp.add_argument("--password-wordlist", type=Path, default=None)
     p_ftp.add_argument("--username-wordlist", type=Path, default=None)
+    p_ftp.add_argument(
+        "--default-credentials",
+        type=Path,
+        default=None,
+        metavar="FILE",
+        help="user:password list for the default-credential phase "
+        "(default: SecLists ftp-betterdefaultpasslist)",
+    )
+    p_ftp.add_argument(
+        "--full-wordlist",
+        action="store_true",
+        help="skip default credentials and brute-force with the large wordlist",
+    )
     p_ftp.add_argument("--skip-hydra", action="store_true")
     p_ftp.add_argument("--skip-anonymous", action="store_true")
     p_ftp.add_argument("--skip-manual", action="store_true")
@@ -215,6 +205,21 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=120,
         help="seconds before hydra is killed (0 = no limit, run the full wordlist)",
+    )
+    p_ssh.add_argument("--password-wordlist", type=Path, default=None)
+    p_ssh.add_argument("--username-wordlist", type=Path, default=None)
+    p_ssh.add_argument(
+        "--default-credentials",
+        type=Path,
+        default=None,
+        metavar="FILE",
+        help="user:password list for the default-credential phase "
+        "(default: SecLists ssh-betterdefaultpasslist)",
+    )
+    p_ssh.add_argument(
+        "--full-wordlist",
+        action="store_true",
+        help="skip default credentials and brute-force with the large wordlist",
     )
     p_ssh.add_argument("--skip-hydra", action="store_true")
     p_ssh.add_argument("--skip-manual", action="store_true")
@@ -258,6 +263,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_all.add_argument("--skip-http", action="store_true")
     p_all.add_argument("--skip-ftp", action="store_true")
     p_all.add_argument("--skip-ssh", action="store_true")
+    p_all.add_argument(
+        "--parallel",
+        action="store_true",
+        help="run the discovered campaigns concurrently instead of sequentially",
+    )
 
     return parser
 
@@ -309,7 +319,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
         if not items:
             continue
 
-        logger.info("=== %s ===", title)
+        logger.info("================== %s ==================", title)
         for item in items:
             label = f"{item.name} — {item.used_for}" if item.used_for else item.name
             if item.ok:
@@ -388,6 +398,8 @@ def _cmd_ftp(args: argparse.Namespace) -> int:
         hydra_timeout=args.hydra_timeout,
         password_wordlist=args.password_wordlist,
         username_wordlist=args.username_wordlist,
+        default_credentials=args.default_credentials,
+        use_full_wordlist=args.full_wordlist,
         skip_hydra=args.skip_hydra,
         skip_anonymous=args.skip_anonymous,
         pause_before_assertions=args.pause,
@@ -414,6 +426,10 @@ def _cmd_ssh(args: argparse.Namespace) -> int:
         target_port=ssh_port,
         hydra_tasks=args.hydra_tasks,
         hydra_timeout=args.hydra_timeout,
+        password_wordlist=args.password_wordlist,
+        username_wordlist=args.username_wordlist,
+        default_credentials=args.default_credentials,
+        use_full_wordlist=args.full_wordlist,
         skip_hydra=args.skip_hydra,
     )
     report = ssh_bruteforce.run(config, args.reports_dir)
@@ -501,6 +517,20 @@ def _plan_campaigns(
     return plan
 
 
+def _run_campaign(
+    category: str,
+    port: int,
+    target: str,
+    reports_dir: Path,
+) -> _CampaignOutcome:
+    runner = _CAMPAIGNS[category][0]
+    label = f"{category}:{port}"
+    logger.info("================== Campaign %s ==================", label)
+    t0 = time.monotonic()
+    exit_code = runner(target, port, reports_dir)
+    return _CampaignOutcome(label, exit_code, time.monotonic() - t0)
+
+
 def _cmd_all(args: argparse.Namespace) -> int:
     rc = _preflight(args, "all", {})
     if rc != 0:
@@ -539,15 +569,20 @@ def _cmd_all(args: argparse.Namespace) -> int:
     if not plan:
         logger.warning("No attackable service to run against %s", args.target)
 
-    outcomes: list[_CampaignOutcome] = []
     start = time.monotonic()
-    for category, port in plan:
-        runner = _CAMPAIGNS[category][0]
-        label = f"{category}:{port}"
-        logger.info("=== Campaign %s ===", label)
-        t0 = time.monotonic()
-        exit_code = runner(args.target, port, consolidated)
-        outcomes.append(_CampaignOutcome(label, exit_code, time.monotonic() - t0))
+    if args.parallel and len(plan) > 1:
+        logger.info("Running %d campaigns in parallel", len(plan))
+        with ThreadPoolExecutor(max_workers=len(plan)) as pool:
+            futures = [
+                pool.submit(_run_campaign, category, port, args.target, consolidated)
+                for category, port in plan
+            ]
+            outcomes = [future.result() for future in futures]
+    else:
+        outcomes = [
+            _run_campaign(category, port, args.target, consolidated)
+            for category, port in plan
+        ]
 
     duration = time.monotonic() - start
     failed = sum(1 for o in outcomes if not o.skipped and o.exit_code != 0)

@@ -9,6 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         hydra \
@@ -32,7 +33,8 @@ RUN curl -L https://github.com/sullo/nikto/releases/download/2.6.0/nikto-main.zi
     && chmod +x /opt/nikto/nikto.pl \
     && ln -s /opt/nikto/nikto.pl /usr/local/bin/nikto
 
-RUN python -m pip install "git+https://github.com/maurosoria/dirsearch.git"
+# hadolint ignore=DL3013
+RUN python -m pip install --no-cache-dir "git+https://github.com/maurosoria/dirsearch.git"
 
 WORKDIR /app
 

