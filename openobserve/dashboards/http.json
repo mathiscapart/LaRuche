@@ -353,6 +353,73 @@
             "h": 9,
             "i": 5
           }
+        },
+        {
+          "id": "h_exploit_detection",
+          "type": "bar",
+          "title": "Détections d'Exploits par Type",
+          "description": "Nombre de détections pour chaque type d'exploit (LFI, SQLi, RCE, Log4Shell, etc.).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT classification_tags as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' AND classification_category = 'EXPLOIT_ATTEMPT' GROUP BY classification_tags ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Type d'Exploit",
+                    "alias": "x_axis_1",
+                    "column": "classification_tags",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Nombre de Détections",
+                    "alias": "y_axis_1",
+                    "column": "classification_tags",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 27,
+            "w": 48,
+            "h": 9,
+            "i": 6
+          }
         }
       ]
     }
