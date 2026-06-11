@@ -7,12 +7,12 @@ import logging
 from attacker.attacks import honeypot
 from attacker.attacks.common import HttpResponse
 from attacker.attacks.honeypot import (
+    _SSH_BANNER_SIGNATURES,
     SUSPECT_THRESHOLD,
     HoneypotVerdict,
     _default_pairs,
     _match_signatures,
     _read_lines,
-    _SSH_BANNER_SIGNATURES,
     analyze_logins,
     detect_http,
     warn_if_suspected,
