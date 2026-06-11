@@ -195,8 +195,9 @@ services:
     volumes:
       # Lit le JSONL brut et écrit l'enrichi dans le même volume (sous enriched/).
       - honeypot_logs:/var/log/honeypot
-      # Bases MaxMind GeoLite2 à fournir (sinon GeoIP renvoie des champs vides).
-      - ./data/geoip:/data/geoip:ro
+      # Bases GeoLite2 embarquées dans l'image (multi-stage build CI).
+      # Bind-mount optionnel pour override local (décommenter si besoin) :
+      # - ./data/geoip:/data/geoip:ro
     security_opt:
       - no-new-privileges:true
 
