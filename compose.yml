@@ -176,7 +176,7 @@ services:
     build:
       context: .
       dockerfile: analyzer/Dockerfile
-    image: qualite863/analyzer:latest
+    image: qualite863/honeypot-analyzer:latest
     container_name: analyzer
     restart: unless-stopped
     depends_on:
