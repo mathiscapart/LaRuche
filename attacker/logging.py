@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
 
 _ANSI = {
     "DEBUG": "\033[0;90m",

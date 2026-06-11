@@ -300,8 +300,9 @@ def _spray(
     timeout: float,
     pause: float,
     max_attempts: int,
-) -> int:
+) -> tuple[int, list[tuple[str, str]]]:
     attempts = 0
+    found: list[tuple[str, str]] = []
     for user, password in credentials:
         if attempts >= max_attempts:
             break
@@ -321,6 +322,7 @@ def _spray(
         log.append(f"{vector.name:<32} {user}:{password:<14} -> {status} [{outcome}]")
         if success:
             logger.info("Valid credentials via %s: %s:%s", vector.name, user, password)
+            found.append((user, password))
             findings.append(
                 Finding(
                     "critical",
@@ -328,11 +330,13 @@ def _spray(
                     f"{user}:{password} at {vector.path}",
                 )
             )
-            return attempts
+            # Keep spraying: do not stop at the first hit. The full set of
+            # accepted pairs is what the honeypot check uses to tell a real
+            # weak credential apart from a trap that waves everyone through.
 
         time.sleep(pause)
 
-    return attempts
+    return attempts, found
 
 
 def _enumerate_wordpress_users(base_url: str, *, timeout: float) -> list[str]:
@@ -364,9 +368,13 @@ def _enumerate_wordpress_users(base_url: str, *, timeout: float) -> list[str]:
 @dataclass
 class AttackOutcome:
     login_attempts: int = 0
-    credentials_found: int = 0
     sensitive_paths: int = 0
+    found_credentials: list[tuple[str, str]] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
+
+    @property
+    def credentials_found(self) -> int:
+        return len(self.found_credentials)
 
 
 def _probe_paths(
@@ -449,8 +457,7 @@ def attack_cms(
 
     log.append("\n## Login attempts")
     for vector in CMS_LOGIN_VECTORS.get(fp.cms, ()):
-        before = len(outcome.findings)
-        outcome.login_attempts += _spray(
+        attempts, found = _spray(
             base_url,
             vector,
             cred_plan,
@@ -460,7 +467,8 @@ def attack_cms(
             pause=pause,
             max_attempts=max_attempts,
         )
-        outcome.credentials_found += len(outcome.findings) - before
+        outcome.login_attempts += attempts
+        outcome.found_credentials.extend(found)
 
     results.file("cms-attack.txt").write_text("\n".join(log), encoding="utf-8")
     return outcome
@@ -544,7 +552,7 @@ def attack_generic(
                 user_field=user_field,
                 pass_field=pass_field,
             )
-            spent = _spray(
+            spent, found = _spray(
                 base_url,
                 vector,
                 credentials[: max(1, attempts_budget)],
@@ -555,6 +563,7 @@ def attack_generic(
                 max_attempts=attempts_budget,
             )
             outcome.login_attempts += spent
+            outcome.found_credentials.extend(found)
             attempts_budget -= spent
 
     # 4. Injection probes (SQLi / traversal / LFI) on the query string.
