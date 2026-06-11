@@ -115,8 +115,8 @@ services:
       - analyzer
     environment:
       # Identifiants d'ingestion OpenObserve (US-19), injectés dans la conf via ${...}.
-      OPENOBSERVE_USER: "admin@laruche.local"
-      OPENOBSERVE_PASSWORD: "Honeypot2026!"
+      OPENOBSERVE_USER: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      OPENOBSERVE_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
     volumes:
       # Logs honeypot en LECTURE SEULE (le collecteur ne doit pas y écrire).
       - honeypot_logs:/var/log/honeypot:ro
@@ -138,13 +138,35 @@ services:
     container_name: openobserve
     restart: unless-stopped
     environment:
-      ZO_ROOT_USER_EMAIL: "admin@laruche.local"
-      ZO_ROOT_USER_PASSWORD: "Honeypot2026!"
+      ZO_ROOT_USER_EMAIL: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      ZO_ROOT_USER_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
       ZO_DATA_DIR: "/data"
     ports:
       - "5080:5080"
     volumes:
       - openobserve_data:/data
+    security_opt:
+      - no-new-privileges:true
+
+  # US-19 : provisioning automatique des dashboards OpenObserve au démarrage.
+  # Conteneur éphémère : attend qu'OpenObserve réponde, (ré)importe les
+  # dashboards/*.json de façon idempotente, puis s'arrête.
+  dashboard-provisioner:
+    image: python:3.12-slim-bookworm
+    container_name: dashboard-provisioner
+    depends_on:
+      - openobserve
+    environment:
+      OPENOBSERVE_URL: "http://openobserve:5080"
+      OPENOBSERVE_USER: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      OPENOBSERVE_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
+      DASHBOARDS_DIR: "/provision/dashboards"
+    volumes:
+      # :ro,z = lecture seule + relabel SELinux (Fedora).
+      - ./openobserve:/provision:ro,z
+    command: ["python", "/provision/provision.py"]
+    # Tâche one-shot : pas de redémarrage en boucle une fois l'import fait.
+    restart: "no"
     security_opt:
       - no-new-privileges:true
 

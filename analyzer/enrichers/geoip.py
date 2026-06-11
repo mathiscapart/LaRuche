@@ -15,7 +15,12 @@ try:
 except ImportError:  # geoip2 optionnel (champs vides si absent)
     geoip2 = None
 
-_EMPTY = {"country_code": "", "country_name": "", "city": "", "asn": "", "org": ""}
+_EMPTY = {
+    "country_code": "", "country_name": "", "city": "", "asn": "", "org": "",
+    # Coordonnées pour la carte OpenObserve (geomap). None tant qu'inconnues
+    # (IP privée, base absente) : la carte ignore simplement ces points.
+    "latitude": None, "longitude": None,
+}
 
 
 def _open_reader(path: str):
@@ -47,6 +52,9 @@ class GeoIPEnricher:
                 out["country_code"] = city.country.iso_code or ""
                 out["country_name"] = city.country.name or ""
                 out["city"] = city.city.name or ""
+                if city.location.latitude is not None:
+                    out["latitude"] = float(city.location.latitude)
+                    out["longitude"] = float(city.location.longitude)
             except Exception:  # IP absente de la base, etc.
                 pass
         if self._asn is not None:

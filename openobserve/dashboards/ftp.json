@@ -1,0 +1,547 @@
+{
+  "version": 3,
+  "dashboardId": "ftp_130f3a9116",
+  "title": "Honeypot — FTP",
+  "description": "Analyse des attaques FTP.",
+  "role": "",
+  "owner": "admin@laruche.local",
+  "created": "2026-06-11T00:00:00.000Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "General",
+      "panels": [
+        {
+          "id": "f_user",
+          "type": "bar",
+          "title": "Top credentials — usernames",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_username as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND payload_username IS NOT NULL GROUP BY payload_username ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Username",
+                    "alias": "x_axis_1",
+                    "column": "payload_username",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Tentatives",
+                    "alias": "y_axis_1",
+                    "column": "payload_username",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 9,
+            "i": 1
+          }
+        },
+        {
+          "id": "f_pwd",
+          "type": "bar",
+          "title": "Top credentials — mots de passe",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_password as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND payload_password IS NOT NULL GROUP BY payload_password ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Mot de passe",
+                    "alias": "x_axis_1",
+                    "column": "payload_password",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Tentatives",
+                    "alias": "y_axis_1",
+                    "column": "payload_password",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 0,
+            "w": 24,
+            "h": 9,
+            "i": 2
+          }
+        },
+        {
+          "id": "f_cmd",
+          "type": "h-bar",
+          "title": "Commandes FTP les plus utilisées",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_command as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='command' GROUP BY payload_command ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Commande",
+                    "alias": "x_axis_1",
+                    "column": "payload_command",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Occurrences",
+                    "alias": "y_axis_1",
+                    "column": "payload_command",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "w": 48,
+            "h": 9,
+            "i": 3
+          }
+        },
+        {
+          "id": "f_path",
+          "type": "table",
+          "title": "Dossiers / fichiers les plus accédés",
+          "description": "CWD/LIST/RETR/STOR — dossiers listés et fichiers recherchés.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND payload_path IS NOT NULL GROUP BY payload_path ORDER BY y_axis_1 DESC LIMIT 25",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Chemin",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Accès",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 18,
+            "w": 24,
+            "h": 9,
+            "i": 4
+          }
+        },
+        {
+          "id": "f_trav",
+          "type": "table",
+          "title": "Path traversal détecté",
+          "description": "Chemins contenant « .. » (tentatives de remontée d'arborescence).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", src_ip as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND payload_path LIKE '%..%' GROUP BY payload_path, src_ip ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Chemin (traversal)",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  },
+                  {
+                    "label": "Source IP",
+                    "alias": "x_axis_2",
+                    "column": "src_ip",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Occurrences",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 18,
+            "w": 24,
+            "h": 9,
+            "i": 5
+          }
+        },
+        {
+          "id": "f_conn",
+          "type": "metric",
+          "title": "Connexions FTP",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='connection'",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Connexions",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 27,
+            "w": 16,
+            "h": 9,
+            "i": 6
+          }
+        },
+        {
+          "id": "f_up",
+          "type": "metric",
+          "title": "Uploads (STOR)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='file_upload'",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Uploads",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 16,
+            "y": 27,
+            "w": 16,
+            "h": 9,
+            "i": 7
+          }
+        },
+        {
+          "id": "f_sev",
+          "type": "pie",
+          "title": "Sévérité FTP",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT classification_severity as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND classification_severity IS NOT NULL GROUP BY classification_severity ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Sévérité",
+                    "alias": "x_axis_1",
+                    "column": "classification_severity",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Events",
+                    "alias": "y_axis_1",
+                    "column": "classification_severity",
+                    "color": "#b2a759",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 32,
+            "y": 27,
+            "w": 16,
+            "h": 9,
+            "i": 8
+          }
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": false
+  }
+}

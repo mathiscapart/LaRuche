@@ -1,0 +1,605 @@
+{
+  "version": 3,
+  "dashboardId": "ssh_c4e0f475d2",
+  "title": "Honeypot — SSH",
+  "description": "Analyse des attaques SSH (US-01 à US-07).",
+  "role": "",
+  "owner": "admin@laruche.local",
+  "created": "2026-06-11T00:00:00.000Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "General",
+      "panels": [
+        {
+          "id": "s_pwd",
+          "type": "bar",
+          "title": "Top mots de passe SSH",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_password as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_password IS NOT NULL GROUP BY payload_password ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Mot de passe",
+                    "alias": "x_axis_1",
+                    "column": "payload_password",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Tentatives",
+                    "alias": "y_axis_1",
+                    "column": "payload_password",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 9,
+            "i": 1
+          }
+        },
+        {
+          "id": "s_user",
+          "type": "bar",
+          "title": "Top usernames SSH",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_username as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_username IS NOT NULL GROUP BY payload_username ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Username",
+                    "alias": "x_axis_1",
+                    "column": "payload_username",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Tentatives",
+                    "alias": "y_axis_1",
+                    "column": "payload_username",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 0,
+            "w": 24,
+            "h": 9,
+            "i": 2
+          }
+        },
+        {
+          "id": "s_method",
+          "type": "pie",
+          "title": "Méthodes d'authentification",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_auth_method as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_auth_method IS NOT NULL GROUP BY payload_auth_method ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Méthode",
+                    "alias": "x_axis_1",
+                    "column": "payload_auth_method",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Tentatives",
+                    "alias": "y_axis_1",
+                    "column": "payload_auth_method",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "w": 24,
+            "h": 9,
+            "i": 3
+          }
+        },
+        {
+          "id": "s_profile",
+          "type": "pie",
+          "title": "Profil attaquant (bot / human)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT classification_profile as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND classification_profile IS NOT NULL GROUP BY classification_profile ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Profil",
+                    "alias": "x_axis_1",
+                    "column": "classification_profile",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Sessions",
+                    "alias": "y_axis_1",
+                    "column": "classification_profile",
+                    "color": "#b2a759",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 9,
+            "w": 24,
+            "h": 9,
+            "i": 4
+          }
+        },
+        {
+          "id": "s_cmd",
+          "type": "h-bar",
+          "title": "Commandes les plus utilisées",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_command as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type='command' GROUP BY payload_command ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Commande",
+                    "alias": "x_axis_1",
+                    "column": "payload_command",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Occurrences",
+                    "alias": "y_axis_1",
+                    "column": "payload_command",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 18,
+            "w": 48,
+            "h": 9,
+            "i": 5
+          }
+        },
+        {
+          "id": "s_seq",
+          "type": "table",
+          "title": "Top enchaînements de commandes (fingerprint)",
+          "description": "Sessions partageant la même séquence de commandes (campagnes).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_session_fingerprint as \"x_axis_1\", count(*) as \"y_axis_1\", max(payload_command_count) as \"x_axis_2\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_session_fingerprint IS NOT NULL GROUP BY payload_session_fingerprint ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Fingerprint séquence",
+                    "alias": "x_axis_1",
+                    "column": "payload_session_fingerprint",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  },
+                  {
+                    "label": "Nb commandes",
+                    "alias": "x_axis_2",
+                    "column": "payload_command_count",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Sessions",
+                    "alias": "y_axis_1",
+                    "column": "payload_session_fingerprint",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 27,
+            "w": 48,
+            "h": 9,
+            "i": 6
+          }
+        },
+        {
+          "id": "s_conn",
+          "type": "metric",
+          "title": "Connexions SSH",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type='connection'",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Connexions",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#5960b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 36,
+            "w": 16,
+            "h": 9,
+            "i": 7
+          }
+        },
+        {
+          "id": "s_esc",
+          "type": "metric",
+          "title": "Sessions → escalade privilèges",
+          "description": "Sessions ayant tenté su/sudo vers root (US-04).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(DISTINCT session_id) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_target_user='root'",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Escalades",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 16,
+            "y": 36,
+            "w": 16,
+            "h": 9,
+            "i": 8
+          }
+        },
+        {
+          "id": "s_interact",
+          "type": "metric",
+          "title": "Interactions moyennes / session",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT avg(payload_command_count) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type='disconnection'",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Cmd/session",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 32,
+            "y": 36,
+            "w": 16,
+            "h": 9,
+            "i": 9
+          }
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": false
+  }
+}
