@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from attacker import __version__
+from attacker import report as report_mod
 from attacker.attacks import ftp_bruteforce, http_scan, ssh_bruteforce
 from attacker.attacks.common import is_reachable, make_results_dir
 from attacker.config import (
@@ -602,24 +603,51 @@ def _cmd_all(args: argparse.Namespace) -> int:
             outcome.duration_s,
         )
 
-    summary = consolidated / "summary.txt"
-    summary.write_text(
-        "target: {target}\n"
-        "duration_s: {duration:.1f}\n"
-        "{lines}\n"
-        "failed: {failed}\n".format(
-            target=args.target,
-            duration=duration,
-            lines="\n".join(
-                f"{o.name}: rc={o.exit_code} duration={o.duration_s:.1f}s "
-                f"skipped={o.skipped}"
-                for o in outcomes
-            ),
-            failed=failed,
-        ),
-        encoding="utf-8",
-    )
+    _write_campaign_report(args.target, consolidated, outcomes, duration, failed)
     return 0 if failed == 0 else 1
+
+
+def _write_campaign_report(
+    target: str,
+    consolidated: Path,
+    outcomes: list[_CampaignOutcome],
+    duration: float,
+    failed: int,
+) -> None:
+    rich = report_mod.Report(
+        title="Multi-Service Campaign Assessment",
+        target=target,
+        protocol="all",
+        host=target,
+        port=0,
+        started_at=datetime.now(),
+        duration_s=duration,
+        exit_code=0 if failed == 0 else 1,
+    )
+    for outcome in outcomes:
+        status = (
+            "skipped"
+            if outcome.skipped
+            else ("completed" if outcome.exit_code == 0 else "failed")
+        )
+        rich.phases.append(
+            report_mod.ReportPhase(
+                outcome.name,
+                status,
+                f"rc={outcome.exit_code}, {outcome.duration_s:.1f}s",
+            )
+        )
+    rich.metrics = {
+        "Target": target,
+        "Campaigns run": len(outcomes),
+        "Failed": failed,
+        "Total duration": f"{duration:.1f}s",
+    }
+    rich.notes.append(
+        "Per-service reports (`report.md` / `report.json`) are written in each "
+        "campaign's sub-directory under this folder."
+    )
+    report_mod.write_report(consolidated, rich)
 
 
 _HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
