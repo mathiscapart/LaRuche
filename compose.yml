@@ -3,6 +3,18 @@
 # (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers
 # OpenObserve (US-19) — pas de SIEM, pas de broker intermédiaire.
 services:
+  # Fixe les permissions du volume partagé honeypot_logs avant le démarrage
+  # des honeypots. Le volume Docker est créé en root:root, mais les services
+  # écrivent en tant que honey (uid 10001) — sans ce chown les .jsonl ne
+  # peuvent pas être créés (Permission denied).
+  init-logs:
+    image: busybox:latest
+    container_name: init-logs
+    restart: "no"
+    command: ["sh", "-c", "chown -R 10001:10001 /var/log/honeypot"]
+    volumes:
+      - honeypot_logs:/var/log/honeypot
+
   attacker:
     build:
       context: attacker
@@ -16,6 +28,9 @@ services:
     image: qualite863/honeypot-ssh:latest
     container_name: honeypot-ssh
     restart: unless-stopped
+    depends_on:
+      init-logs:
+        condition: service_completed_successfully
     # Deux ports ouverts : 22 (SSH standard, crédibilité) et 2222 (cible des
     # scripts d'attaque US-27 / DMZ US-20). Les deux pointent vers le honeypot
     # qui écoute en interne sur 2222 (port non privilégié -> process non-root).
@@ -42,6 +57,9 @@ services:
     image: qualite863/honeypot-ftp:latest
     container_name: honeypot-ftp
     restart: unless-stopped
+    depends_on:
+      init-logs:
+        condition: service_completed_successfully
     # Port de contrôle exposé sur 21 (FTP standard, crédibilité) et 2121
     # (cible des scripts d'attaque). Le honeypot écoute en interne sur 2121
     # (port non privilégié -> process non-root).
@@ -85,6 +103,9 @@ services:
     image: qualite863/honeypot-http:latest
     container_name: honeypot-http
     restart: unless-stopped
+    depends_on:
+      init-logs:
+        condition: service_completed_successfully
     # 80 (HTTP standard, crédibilité) et 8080 (cible des scripts d'attaque).
     # Le honeypot écoute en interne sur 8080 (port non privilégié -> non-root).
     ports:
@@ -108,11 +129,18 @@ services:
     container_name: fluent-bit
     restart: unless-stopped
     depends_on:
-      - honeypot-ssh
-      - honeypot-ftp
-      - honeypot-http
-      - openobserve
-      - analyzer
+      init-logs:
+        condition: service_completed_successfully
+      honeypot-ssh:
+        condition: service_started
+      honeypot-ftp:
+        condition: service_started
+      honeypot-http:
+        condition: service_started
+      openobserve:
+        condition: service_started
+      analyzer:
+        condition: service_started
     environment:
       # Identifiants d'ingestion OpenObserve (US-19), injectés dans la conf via ${...}.
       OPENOBSERVE_USER: "admin@laruche.local"
@@ -158,9 +186,14 @@ services:
     container_name: analyzer
     restart: unless-stopped
     depends_on:
-      - honeypot-ssh
-      - honeypot-ftp
-      - honeypot-http
+      init-logs:
+        condition: service_completed_successfully
+      honeypot-ssh:
+        condition: service_started
+      honeypot-ftp:
+        condition: service_started
+      honeypot-http:
+        condition: service_started
     environment:
       ANALYZER_LOG_DIR: "/var/log/honeypot"
       ANALYZER_ENRICHED_OUTPUT: "/var/log/honeypot/enriched/events.jsonl"
