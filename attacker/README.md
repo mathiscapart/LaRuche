@@ -249,20 +249,33 @@ password list you can drop in `rockyou.txt` and pass it via `--password-wordlist
 ## Reports & artefacts
 
 Every run writes a timestamped directory under `--reports-dir` (default
-`attacker/reports/`) containing the raw tool logs and a `summary.txt`:
+`attacker/reports/`) containing the raw tool logs plus a professional
+**assessment report** in two formats:
+
+- **`report.md`** — a human-readable Markdown report: status banner + risk
+  rating, executive summary, key metrics, honeypot assessment, compromised
+  credentials, a severity-ranked findings table, the per-phase breakdown and an
+  artefact index.
+- **`report.json`** — the same data, machine-readable, for the analyzer or CI.
 
 ```
 reports/
   ssh-20260611-101500/
-    hydra-default.log      # default-credential phase
+    hydra-default.log         # default-credential phase
     hydra-results-default.txt
-    hydra-full.log         # only if escalated / --full-wordlist
-    summary.txt
+    hydra-full.log            # only if escalated / --full-wordlist
+    report.md
+    report.json
   all-20260611-101500/
     recon-.../nmap.log
-    ssh-.../ ...
-    summary.txt            # consolidated campaign outcome
+    ssh-.../report.md         # one report per discovered service
+    report.md                 # consolidated campaign report
+    report.json
 ```
+
+The report's **risk rating** is `Critical` whenever credentials are cracked,
+otherwise it tracks the highest-severity finding. A honeypot-suspected target is
+flagged prominently and downgrades the credibility of any "success".
 
 ---
 
