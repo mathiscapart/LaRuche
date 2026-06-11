@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import time
@@ -12,7 +13,7 @@ from pathlib import Path
 
 from attacker import __version__
 from attacker import report as report_mod
-from attacker.attacks import ftp_bruteforce, http_scan, ssh_bruteforce
+from attacker.attacks import ftp_bruteforce, honeypot, http_scan, ssh_bruteforce
 from attacker.attacks.common import is_reachable, make_results_dir
 from attacker.config import (
     DEFAULT_REPORTS_DIR,
@@ -607,6 +608,66 @@ def _cmd_all(args: argparse.Namespace) -> int:
     return 0 if failed == 0 else 1
 
 
+def _collect_protocol_signals(consolidated: Path) -> list[honeypot.ProtocolSignal]:
+    """Read each campaign's ``report.json`` and lift its honeypot assessment.
+
+    Only the per-service sub-directories are scanned (the consolidated report is
+    written *after* this), so we see one entry per attacked protocol.
+    """
+    collected: list[honeypot.ProtocolSignal] = []
+    for path in sorted(consolidated.glob("*/report.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        hp = data.get("honeypot")
+        if not hp:
+            continue
+        collected.append(
+            honeypot.ProtocolSignal(
+                protocol=str(data.get("protocol") or path.parent.name),
+                score=int(hp.get("score", 0)),
+                suspected=bool(hp.get("suspected", False)),
+                signals=tuple(
+                    (s["indicator"], s["detail"], s["weight"])
+                    for s in hp.get("signals", [])
+                ),
+            )
+        )
+    return collected
+
+
+def _apply_cross_protocol_honeypot(rich: report_mod.Report, consolidated: Path) -> None:
+    """Fold the per-protocol honeypot results into one cross-protocol verdict."""
+    protocols = _collect_protocol_signals(consolidated)
+    if not protocols:
+        return
+
+    verdict = honeypot.aggregate_cooperation(protocols)
+    rich.honeypot = report_mod.HoneypotAssessment(
+        suspected=verdict.is_suspected,
+        score=verdict.score,
+        signals=tuple(
+            (
+                p.protocol,
+                (
+                    f"over-cooperative ({len(p.signals)} signal(s))"
+                    if p.suspected
+                    else "behaved like a stingy, hardened host"
+                ),
+                p.score,
+            )
+            for p in verdict.protocols
+        ),
+    )
+    rich.metrics["Honeypot (cross-protocol)"] = (
+        f"{'suspected' if verdict.is_suspected else 'no'} ({verdict.score}%)"
+    )
+    rich.notes.append(verdict.summary())
+    if verdict.is_suspected:
+        logger.warning("CROSS-PROTOCOL HONEYPOT: %s", verdict.summary())
+
+
 def _write_campaign_report(
     target: str,
     consolidated: Path,
@@ -643,6 +704,7 @@ def _write_campaign_report(
         "Failed": failed,
         "Total duration": f"{duration:.1f}s",
     }
+    _apply_cross_protocol_honeypot(rich, consolidated)
     rich.notes.append(
         "Per-service reports (`report.md` / `report.json`) are written in each "
         "campaign's sub-directory under this folder."

