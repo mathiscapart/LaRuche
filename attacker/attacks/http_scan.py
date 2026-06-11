@@ -26,10 +26,13 @@ import io
 import json
 import logging
 import shutil
+import time
 import urllib.parse
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
+from attacker import report as report_mod
 from attacker.attacks.common import (
     HttpResponse,
     ResultsDir,
@@ -359,15 +362,29 @@ def _phase_attack(
 
 
 def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
+    started_at = datetime.now()
+    start = time.monotonic()
     report = HttpScanReport(target=config.base_url)
 
     results = make_results_dir(reports_dir, prefix="http")
     logger.info("Artefacts directory: %s", results.path)
 
+    rich = report_mod.Report(
+        title="HTTP Scan Assessment",
+        target=config.base_url,
+        protocol="http",
+        host=config.target_host,
+        port=config.target_port,
+        started_at=started_at,
+    )
+
     home = http_request(config.base_url, "/", timeout=5, capture_body=True)
     if not home.ok:
         logger.error("HTTP target unreachable: %s", home.error)
         report.exit_code = 2
+        rich.exit_code = 2
+        rich.duration_s = time.monotonic() - start
+        report_mod.write_report(results.path, rich)
         return report
     logger.info("HTTP target reachable (status %s)", home.status)
 
@@ -383,28 +400,57 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     report.cms_confidence = fp.cms_confidence
     report.server = fp.server
     report.technologies = fp.technologies
+    rich.phases.append(
+        report_mod.ReportPhase(
+            "Fingerprint",
+            "completed",
+            f"cms={fp.cms or 'unknown'} ({fp.cms_confidence}%) server={fp.server or '?'}",
+        )
+    )
 
     # Phase 2: broad vulnerability scan; findings join the unified report.
     if config.skip_nikto:
         report.skipped_phases.append("nikto")
+        rich.phases.append(
+            report_mod.ReportPhase("Nikto scan", "skipped", "--skip-nikto")
+        )
         logger.warning("Phase 2 skipped (--skip-nikto)")
     else:
         nikto_findings = _phase_nikto(config, results)
         report.nikto_findings = len(nikto_findings)
         report.findings.extend(nikto_findings)
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Nikto scan", "completed", f"{len(nikto_findings)} finding(s)"
+            )
+        )
 
     # Phase 3: content discovery; the endpoints found feed the attack phase.
     discovered_paths: list[str] = []
     if config.skip_dirsearch:
         report.skipped_phases.append("dirsearch")
+        rich.phases.append(
+            report_mod.ReportPhase("Content discovery", "skipped", "--skip-dirsearch")
+        )
         logger.warning("Phase 3 skipped (--skip-dirsearch)")
     else:
         discovered_paths = _phase_dirsearch(config, results)
         report.discovered_paths = len(discovered_paths)
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Content discovery",
+                "completed",
+                f"{len(discovered_paths)} path(s) discovered",
+            )
+        )
 
     # Phase 4: targeted attack, informed by the fingerprint and the discovery.
+    found_credentials: list[tuple[str, str]] = []
     if config.skip_login:
         report.skipped_phases.append("attack")
+        rich.phases.append(
+            report_mod.ReportPhase("Targeted attack", "skipped", "--skip-login")
+        )
         logger.warning("Phase 4 skipped (--skip-login)")
     else:
         outcome = _phase_attack(config, results, fp, discovered_paths)
@@ -412,6 +458,16 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
         report.credentials_found = outcome.credentials_found
         report.sensitive_paths = outcome.sensitive_paths
         report.findings.extend(outcome.findings)
+        found_credentials = outcome.found_credentials
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Targeted attack",
+                "completed",
+                f"{outcome.login_attempts} login attempt(s), "
+                f"{outcome.credentials_found} credential(s), "
+                f"{outcome.sensitive_paths} sensitive path(s)",
+            )
+        )
         # Coherence: feed the full credential spray back into the verdict.
         analyze_logins(
             verdict,
@@ -422,44 +478,48 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
 
     report.honeypot_suspected = warn_if_suspected(verdict, logger)
 
-    _write_findings(results, report)
-    _write_summary(results, config, report)
+    _populate_report(rich, config, report, verdict, fp, found_credentials)
+    rich.duration_s = time.monotonic() - start
+    report_mod.write_report(results.path, rich)
     return report
 
 
-def _write_findings(results: ResultsDir, report: HttpScanReport) -> None:
-    if not report.findings:
-        results.file("findings.txt").write_text("(no findings)\n", encoding="utf-8")
-        return
-
-    order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-    ranked = sorted(report.findings, key=lambda f: order.get(f.severity, 5))
-    body = "\n".join(finding.line() for finding in ranked)
-    results.file("findings.txt").write_text(body + "\n", encoding="utf-8")
-
-
-def _write_summary(
-    results: ResultsDir,
+def _populate_report(
+    rich: report_mod.Report,
     config: HttpScanConfig,
     report: HttpScanReport,
+    verdict: object,
+    fp: Fingerprint,
+    found_credentials: list[tuple[str, str]],
 ) -> None:
-    summary = results.file("summary.txt")
-    lines = [
-        f"target: {report.target}",
-        f"target_port: {config.target_port}",
-        f"cms: {report.cms or 'unknown'} ({report.cms_confidence}%)",
-        f"cms_version: {report.cms_version or 'unknown'}",
-        f"server: {report.server or 'unknown'}",
-        f"technologies: {', '.join(report.technologies) or '-'}",
-        f"nikto_findings: {report.nikto_findings}",
-        f"discovered_paths: {report.discovered_paths}",
-        f"login_attempts: {report.login_attempts}",
-        f"credentials_found: {report.credentials_found}",
-        f"sensitive_paths: {report.sensitive_paths}",
-        f"honeypot_suspected: {report.honeypot_suspected}",
-        f"total_findings: {len(report.findings)}",
-        f"skipped_phases: {','.join(report.skipped_phases) or 'none'}",
-        f"exit_code: {report.exit_code}",
+    rich.exit_code = report.exit_code
+    rich.honeypot = report_mod.honeypot_assessment_from_verdict(verdict)
+    rich.credentials = [
+        report_mod.ReportCredential(user, pwd, service="HTTP")
+        for user, pwd in found_credentials
     ]
-
-    summary.write_text("\n".join(lines), encoding="utf-8")
+    rich.findings = [
+        report_mod.ReportFinding(f.severity, f.title, f.detail) for f in report.findings
+    ]
+    if rich.honeypot.suspected:
+        rich.findings.append(
+            report_mod.ReportFinding(
+                "info",
+                "Target appears to be a honeypot",
+                f"honeypot confidence {rich.honeypot.score}%",
+            )
+        )
+    rich.metrics = {
+        "Port": config.target_port,
+        "CMS": f"{report.cms or 'unknown'} ({report.cms_confidence}%)",
+        "CMS version": report.cms_version or "unknown",
+        "Server": report.server or "unknown",
+        "Technologies": ", ".join(report.technologies) or "-",
+        "Nikto findings": report.nikto_findings,
+        "Discovered paths": report.discovered_paths,
+        "Login attempts": report.login_attempts,
+        "Credentials cracked": report.credentials_found,
+        "Sensitive paths": report.sensitive_paths,
+        "Honeypot suspected": "yes" if report.honeypot_suspected else "no",
+        "Skipped phases": ", ".join(report.skipped_phases) or "none",
+    }
