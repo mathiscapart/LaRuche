@@ -158,6 +158,8 @@ To enable GeoIP enrichment, download the MaxMind GeoLite2 databases and place th
 - `GeoLite2-City.mmdb`
 - `GeoLite2-ASN.mmdb`
 
+You can download these databases from the [P3TERX/GeoLite.mmdb](https://github.com/P3TERX/GeoLite.mmdb) repository, which provides up-to-date versions of the GeoLite2 databases.
+
 ## Documentation
 
 - **[Attacker Documentation](docs/ATTACKER.md)**: Detailed documentation for the attacker module, including how it works, requirements, commands, and usage examples.
