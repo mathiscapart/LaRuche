@@ -17,6 +17,7 @@ from attacker.attacks.common import (
     run_credential_bruteforce,
 )
 from attacker.attacks.honeypot import analyze_logins, detect_ssh, warn_if_suspected
+from attacker.attacks.post_exploit import ssh_post_exploit
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,10 @@ class SshBruteforceReport:
     target: str
     hydra_attempts: int = 0
     hydra_credentials_found: int = 0
+    sensitive_files: int = 0
     honeypot_suspected: bool = False
     skipped_phases: list[str] = field(default_factory=list)
+    loot_findings: list[report_mod.ReportFinding] = field(default_factory=list)
     exit_code: int = 0
 
 
@@ -127,6 +130,37 @@ def run(
             indicator="ssh-bruteforce",
         )
 
+    # Phase 2: post-exploitation — prove impact with a cracked credential and
+    # let the box's post-access behaviour sharpen the honeypot verdict.
+    if found:
+        loot = ssh_post_exploit(
+            config.target_host,
+            config.target_port,
+            found[0],
+            verdict,
+            results,
+            timeout=max(config.ssh_timeout * 2, 15.0),
+        )
+        report.loot_findings = loot
+        # Count only genuine impact (abnormal access / escalation), not the
+        # world-readable recon files which any real box also exposes.
+        report.sensitive_files = sum(
+            1 for f in loot if f.severity in ("critical", "high")
+        )
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Post-exploitation",
+                "completed",
+                f"{len(loot)} finding(s) via {found[0][0]}",
+            )
+        )
+    else:
+        rich.phases.append(
+            report_mod.ReportPhase(
+                "Post-exploitation", "skipped", "no credentials cracked"
+            )
+        )
+
     report.honeypot_suspected = warn_if_suspected(verdict, logger)
 
     _populate_report(rich, config, report, verdict, found)
@@ -155,6 +189,7 @@ def _populate_report(
                 f"`{user}:{pwd}` at {report.target}",
             )
         )
+    rich.findings.extend(report.loot_findings)
     if rich.honeypot.suspected:
         rich.findings.append(
             report_mod.ReportFinding(
@@ -167,6 +202,7 @@ def _populate_report(
         "Port": config.target_port,
         "Login attempts": report.hydra_attempts,
         "Credentials cracked": report.hydra_credentials_found,
+        "Sensitive files accessed": report.sensitive_files,
         "Honeypot suspected": "yes" if report.honeypot_suspected else "no",
         "Skipped phases": ", ".join(report.skipped_phases) or "none",
     }

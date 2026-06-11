@@ -66,6 +66,10 @@ _GENERIC_FAILURE_RE = re.compile(
     r"incorrect|invalid|denied|failed|error|unknown username|try again",
     re.IGNORECASE,
 )
+# A body that contains a real ``/etc/passwd`` line proves file disclosure / LFI.
+_ETC_PASSWD_RE = re.compile(r"root:.*?:0:0:", re.MULTILINE)
+# ``/etc/os-release`` style markers proving an OS file was read back.
+_OS_RELEASE_RE = re.compile(r"PRETTY_NAME=|VERSION_CODENAME=|^ID=debian", re.MULTILINE)
 
 # --- WordPress XML-RPC multicall (amplified brute-force vector) -------------
 _WP_XMLRPC_TEMPLATE = (
@@ -577,15 +581,37 @@ def attack_generic(
                 if response.status is not None
                 else f"ERR({response.error})"
             )
-            log.append(f"GET {path:<60} {status}")
-            if response.status and response.status >= 500:
+            body = response.body or ""
+            if _ETC_PASSWD_RE.search(body):
+                log.append(f"GET {path:<60} {status}  <-- /etc/passwd disclosed")
+                outcome.sensitive_paths += 1
                 outcome.findings.append(
                     Finding(
-                        "medium",
-                        "Server error on injection probe",
-                        f"{path} -> {status}",
+                        "critical",
+                        "Local file inclusion / path traversal — /etc/passwd disclosed",
+                        f"{path} returned a passwd-formatted body",
                     )
                 )
+            elif _OS_RELEASE_RE.search(body):
+                log.append(f"GET {path:<60} {status}  <-- OS file disclosed")
+                outcome.sensitive_paths += 1
+                outcome.findings.append(
+                    Finding(
+                        "high",
+                        "Local file inclusion — OS file disclosed",
+                        f"{path} returned /etc/os-release content",
+                    )
+                )
+            else:
+                log.append(f"GET {path:<60} {status}")
+                if response.status and response.status >= 500:
+                    outcome.findings.append(
+                        Finding(
+                            "medium",
+                            "Server error on injection probe",
+                            f"{path} -> {status}",
+                        )
+                    )
             time.sleep(pause)
 
     results.file("generic-attack.txt").write_text("\n".join(log), encoding="utf-8")
