@@ -226,10 +226,15 @@ def analyze_logins(
 
     if defaults_hit:
         shown = ", ".join(f"{u}:{p}" for u, p in defaults_hit[:5])
+        # A single default hit (45) stays under the threshold — it can be a real,
+        # misconfigured host. But a hardened service accepts ~1 valid login, so
+        # *several distinct* known-default credentials being accepted is near-
+        # certain honeypot behaviour: scale the weight by the number of hits.
+        weight = min(_WEIGHT_DEFAULT_LOGIN * len(defaults_hit), 100)
         verdict.add(
             indicator,
             f"cracked credential(s) are known {protocol} service defaults: {shown}",
-            _WEIGHT_DEFAULT_LOGIN,
+            weight,
         )
 
 

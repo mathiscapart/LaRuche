@@ -9,9 +9,11 @@ from attacker.attacks.common import (
     ResultsDir,
     is_reachable,
     make_results_dir,
+    prompt_yes_no,
+    resolve_default_credentials,
     resolve_password_wordlist,
     resolve_username_wordlist,
-    run_hydra,
+    run_credential_bruteforce,
 )
 from attacker.attacks.honeypot import analyze_logins, detect_ftp, warn_if_suspected
 
@@ -29,8 +31,10 @@ class FtpBruteforceConfig:
     pause_before_assertions: float = 10.0
     skip_hydra: bool = False
     skip_anonymous: bool = False
+    use_full_wordlist: bool = False
     password_wordlist: Path | None = None
     username_wordlist: Path | None = None
+    default_credentials: Path | None = None
 
 
 @dataclass
@@ -108,33 +112,35 @@ def run(
     # Pre-attack passive/active honeypot check (banner + default/decoy logins).
     verdict = detect_ftp(config.target_host, config.target_port)
 
+    default_credentials = resolve_default_credentials(
+        config.default_credentials, "ftp"
+    )
     username_wordlist = resolve_username_wordlist(config.username_wordlist)
     password_wordlist = resolve_password_wordlist(config.password_wordlist)
 
     if config.skip_hydra:
         report.skipped_phases.append("hydra")
         logger.warning("Phase 1 skipped (--skip-hydra)")
-    elif password_wordlist is None:
-        logger.error("No password wordlist available; skipping hydra phase")
-        report.skipped_phases.append("hydra")
-    elif username_wordlist is None:
-        logger.error("No username wordlist available; skipping hydra phase")
-        report.skipped_phases.append("hydra")
     else:
-        attempts, found = run_hydra(
+        outcome = run_credential_bruteforce(
             "ftp",
             config.target_host,
             config.target_port,
-            config.hydra_tasks,
-            config.hydra_timeout,
-            username_wordlist,
-            password_wordlist,
-            results,
+            tasks=config.hydra_tasks,
+            timeout=config.hydra_timeout,
+            results=results,
+            default_credentials=default_credentials,
+            username_wordlist=username_wordlist,
+            password_wordlist=password_wordlist,
+            use_full_wordlist=config.use_full_wordlist,
+            confirm_escalation=prompt_yes_no,
         )
-        report.hydra_attempts = attempts
-        report.hydra_credentials_found = len(found)
+        report.hydra_attempts = outcome.attempts
+        report.hydra_credentials_found = len(outcome.found)
         # Coherence: feed the full brute-force result back into the verdict.
-        analyze_logins(verdict, found, protocol="ftp", indicator="ftp-bruteforce")
+        analyze_logins(
+            verdict, outcome.found, protocol="ftp", indicator="ftp-bruteforce"
+        )
 
     if config.skip_anonymous:
         report.skipped_phases.append("anonymous")
