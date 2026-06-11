@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import socket
 import subprocess
 import time
@@ -290,6 +291,9 @@ def resolve_username_wordlist(override: Path | None) -> Path | None:
     return ensure_username_wordlist()
 
 
+_HYDRA_CRED_RE = re.compile(r"login:\s*(?P<user>.*?)\s+password:\s*(?P<pass>.*?)\s*$")
+
+
 def run_hydra(
     protocol: str,
     host: str,
@@ -299,7 +303,7 @@ def run_hydra(
     username_wordlist: Path,
     password_wordlist: Path,
     results: ResultsDir,
-) -> tuple[int, int]:
+) -> tuple[int, list[tuple[str, str]]]:
     output_file = results.file("hydra-results.txt")
     output_log = results.file("hydra.log")
     cmd = [
@@ -312,37 +316,53 @@ def run_hydra(
         str(port),
         "-t",
         str(tasks),
-        "-f",
         "-vV",
         "-o",
         str(output_file),
         f"{protocol}://{host}",
     ]
+    # timeout <= 0 means "no wall-clock limit": let hydra run the whole wordlist
+    # to completion. A fixed budget would otherwise kill it part-way through a
+    # large (e.g. 10k) password list, leaving most candidates untested.
+    wall_clock = timeout + 10 if timeout > 0 else None
     logger.info(
-        "hydra against %s://%s:%d (users=%s, passwords=%s)",
+        "hydra against %s://%s:%d (users=%s, passwords=%s, timeout=%s)",
         protocol,
         host,
         port,
         username_wordlist,
         password_wordlist,
+        "none" if wall_clock is None else f"{wall_clock}s",
     )
 
-    result = run_command(cmd, timeout=timeout + 10, log_to=output_log)
+    result = run_command(cmd, timeout=wall_clock, log_to=output_log)
     if result.return_code == 127:
         logger.error("hydra binary not found")
-        return 0, 0
+        return 0, []
+
+    if result.timed_out:
+        logger.warning(
+            "hydra hit the %ds timeout before finishing the wordlist; "
+            "pass --hydra-timeout 0 to test every password",
+            timeout,
+        )
 
     tag = f"[{port}][{protocol}]"
-    attempts = sum(1 for line in result.stdout.splitlines() if tag in line)
-    found = sum(
-        1
-        for line in result.stdout.splitlines()
-        if tag in line and "login:" in line and "password:" in line
-    )
+    attempts = 0
+    found: list[tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        if tag not in line:
+            continue
+
+        attempts += 1
+        match = _HYDRA_CRED_RE.search(line)
+        if match:
+            found.append((match["user"], match["pass"]))
+
     logger.info(
         "hydra completed in %.1fs (%d attempts, %d credential(s) accepted)",
         result.duration_s,
         attempts,
-        found,
+        len(found),
     )
     return attempts, found

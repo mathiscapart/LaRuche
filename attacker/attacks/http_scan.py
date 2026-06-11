@@ -35,10 +35,11 @@ from attacker.attacks.common import (
     ResultsDir,
     http_request,
     make_results_dir,
-    run_command,
-    resolve_username_wordlist,
     resolve_password_wordlist,
+    resolve_username_wordlist,
+    run_command,
 )
+from attacker.attacks.honeypot import analyze_logins, detect_http, warn_if_suspected
 from attacker.attacks.web_attacks import (
     AttackOutcome,
     Finding,
@@ -98,6 +99,7 @@ class HttpScanReport:
     login_attempts: int = 0
     credentials_found: int = 0
     sensitive_paths: int = 0
+    honeypot_suspected: bool = False
     findings: list[Finding] = field(default_factory=list)
     skipped_phases: list[str] = field(default_factory=list)
     exit_code: int = 0
@@ -364,10 +366,15 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
 
     home = http_request(config.base_url, "/", timeout=5, capture_body=True)
     if not home.ok:
-        logger.error("HTTP honeypot unreachable: %s", home.error)
+        logger.error("HTTP target unreachable: %s", home.error)
         report.exit_code = 2
         return report
     logger.info("HTTP target reachable (status %s)", home.status)
+
+    # Pre-attack passive/active honeypot check (signatures + catch-all + auth
+    # realm probe). The verdict is finalised after phase 4 with the full set of
+    # cracked credentials, keeping detection coherent with the attack.
+    verdict = detect_http(config.base_url, home, timeout=config.request_timeout)
 
     # Phase 1: fingerprint first — it is cheap and drives every later phase.
     fp = _phase_fingerprint(config, results, home)
@@ -405,6 +412,15 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
         report.credentials_found = outcome.credentials_found
         report.sensitive_paths = outcome.sensitive_paths
         report.findings.extend(outcome.findings)
+        # Coherence: feed the full credential spray back into the verdict.
+        analyze_logins(
+            verdict,
+            outcome.found_credentials,
+            protocol="http",
+            indicator="http-bruteforce",
+        )
+
+    report.honeypot_suspected = warn_if_suspected(verdict, logger)
 
     _write_findings(results, report)
     _write_summary(results, config, report)
@@ -440,6 +456,7 @@ def _write_summary(
         f"login_attempts: {report.login_attempts}",
         f"credentials_found: {report.credentials_found}",
         f"sensitive_paths: {report.sensitive_paths}",
+        f"honeypot_suspected: {report.honeypot_suspected}",
         f"total_findings: {len(report.findings)}",
         f"skipped_phases: {','.join(report.skipped_phases) or 'none'}",
         f"exit_code: {report.exit_code}",

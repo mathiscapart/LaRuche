@@ -27,9 +27,27 @@ _USERNAME_WORDLIST_URL = (
     "/Usernames/top-usernames-shortlist.txt"
 )
 
+# Default-credential lists used by the honeypot self-detection probes. The
+# ftp/ssh lists are "user:password" pairs; the http list is password-only.
+_FTP_DEFAULT_CREDS_URL = (
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master"
+    "/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt"
+)
+_SSH_DEFAULT_CREDS_URL = (
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master"
+    "/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt"
+)
+_HTTP_DEFAULT_PASSWORDS_URL = (
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master"
+    "/Passwords/Default-Credentials/default-passwords.txt"
+)
+
 _DIRSEARCH_WORDLIST_LOCAL: Path = WORDLISTS_DIR / "directories.txt"
 _PASSWORD_WORDLIST_LOCAL: Path = WORDLISTS_DIR / "passwords.txt"
 _USERNAME_WORDLIST_LOCAL: Path = WORDLISTS_DIR / "usernames.txt"
+_FTP_DEFAULT_CREDS_LOCAL: Path = WORDLISTS_DIR / "ftp-default-credentials.txt"
+_SSH_DEFAULT_CREDS_LOCAL: Path = WORDLISTS_DIR / "ssh-default-credentials.txt"
+_HTTP_DEFAULT_PASSWORDS_LOCAL: Path = WORDLISTS_DIR / "http-default-passwords.txt"
 
 
 def _download(url: str, dest: Path) -> bool:
@@ -81,5 +99,38 @@ def ensure_username_wordlist() -> Path | None:
     )
     if _download(_USERNAME_WORDLIST_URL, _USERNAME_WORDLIST_LOCAL):
         return _USERNAME_WORDLIST_LOCAL
+
+    return None
+
+
+def ensure_ftp_default_credentials() -> Path | None:
+    if _FTP_DEFAULT_CREDS_LOCAL.is_file():
+        return _FTP_DEFAULT_CREDS_LOCAL
+
+    logger.info("No FTP default-credential list found — fetching from SecLists")
+    if _download(_FTP_DEFAULT_CREDS_URL, _FTP_DEFAULT_CREDS_LOCAL):
+        return _FTP_DEFAULT_CREDS_LOCAL
+
+    return None
+
+
+def ensure_ssh_default_credentials() -> Path | None:
+    if _SSH_DEFAULT_CREDS_LOCAL.is_file():
+        return _SSH_DEFAULT_CREDS_LOCAL
+
+    logger.info("No SSH default-credential list found — fetching from SecLists")
+    if _download(_SSH_DEFAULT_CREDS_URL, _SSH_DEFAULT_CREDS_LOCAL):
+        return _SSH_DEFAULT_CREDS_LOCAL
+
+    return None
+
+
+def ensure_http_default_passwords() -> Path | None:
+    if _HTTP_DEFAULT_PASSWORDS_LOCAL.is_file():
+        return _HTTP_DEFAULT_PASSWORDS_LOCAL
+
+    logger.info("No HTTP default-password list found — fetching from SecLists")
+    if _download(_HTTP_DEFAULT_PASSWORDS_URL, _HTTP_DEFAULT_PASSWORDS_LOCAL):
+        return _HTTP_DEFAULT_PASSWORDS_LOCAL
 
     return None
