@@ -159,6 +159,8 @@
         "city": { "type": "string" },
         "asn": { "type": "string" },
         "org": { "type": "string" },
+        "latitude": { "type": ["number", "null"], "description": "Latitude GeoIP (carte OpenObserve)" },
+        "longitude": { "type": ["number", "null"], "description": "Longitude GeoIP (carte OpenObserve)" },
         "is_tor": { "type": "boolean" },
         "abuse_score": { "type": "integer", "minimum": 0, "maximum": 100 },
         "greynoise": {

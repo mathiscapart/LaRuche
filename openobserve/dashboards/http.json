@@ -1,0 +1,431 @@
+{
+  "version": 3,
+  "dashboardId": "http_4742ed1d28",
+  "title": "Honeypot — HTTP",
+  "description": "Analyse des attaques HTTP (activé une fois les events HTTP ingérés).",
+  "role": "",
+  "owner": "admin@laruche.local",
+  "created": "2026-06-11T00:00:00.000Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "General",
+      "panels": [
+        {
+          "id": "h_url",
+          "type": "h-bar",
+          "title": "URLs les plus visitées",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' GROUP BY payload_path ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "URL",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Hits",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#5992b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 48,
+            "h": 9,
+            "i": 1
+          }
+        },
+        {
+          "id": "h_method",
+          "type": "pie",
+          "title": "Types de requête (méthode HTTP)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_method as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' GROUP BY payload_method ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Méthode",
+                    "alias": "x_axis_1",
+                    "column": "payload_method",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Requêtes",
+                    "alias": "y_axis_1",
+                    "column": "payload_method",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "w": 24,
+            "h": 9,
+            "i": 2
+          }
+        },
+        {
+          "id": "h_ua",
+          "type": "bar",
+          "title": "User-Agents",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_user_agent as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' AND payload_user_agent IS NOT NULL GROUP BY payload_user_agent ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "User-Agent",
+                    "alias": "x_axis_1",
+                    "column": "payload_user_agent",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Requêtes",
+                    "alias": "y_axis_1",
+                    "column": "payload_user_agent",
+                    "color": "#596fb2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 9,
+            "w": 24,
+            "h": 9,
+            "i": 3
+          }
+        },
+        {
+          "id": "h_env",
+          "type": "table",
+          "title": "Accès au .env / fichiers sensibles",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", src_ip as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' AND (payload_path LIKE '%.env%' OR payload_path LIKE '%/config%' OR payload_path LIKE '%credentials%') GROUP BY payload_path, src_ip ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Chemin",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  },
+                  {
+                    "label": "Source IP",
+                    "alias": "x_axis_2",
+                    "column": "src_ip",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Accès",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#b259a0",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 18,
+            "w": 24,
+            "h": 9,
+            "i": 4
+          }
+        },
+        {
+          "id": "h_webshell",
+          "type": "table",
+          "title": "Tentatives webshell / scan",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' AND (payload_path LIKE '%.php%' OR payload_path LIKE '%shell%' OR payload_path LIKE '%cmd%' OR payload_path LIKE '%wp-%' OR payload_path LIKE '%admin%') GROUP BY payload_path ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Chemin suspect",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Occurrences",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 18,
+            "w": 24,
+            "h": 9,
+            "i": 5
+          }
+        },
+        {
+          "id": "h_exploit_detection",
+          "type": "bar",
+          "title": "Détections d'Exploits par Type",
+          "description": "Nombre de détections pour chaque type d'exploit (LFI, SQLi, RCE, Log4Shell, etc.).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT classification_tags as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='http' AND classification_category = 'EXPLOIT_ATTEMPT' GROUP BY classification_tags ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Type d'Exploit",
+                    "alias": "x_axis_1",
+                    "column": "classification_tags",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Nombre de Détections",
+                    "alias": "y_axis_1",
+                    "column": "classification_tags",
+                    "color": "#b27a59",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 27,
+            "w": 48,
+            "h": 9,
+            "i": 6
+          }
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": false
+  }
+}

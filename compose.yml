@@ -3,18 +3,6 @@
 # (honeypot_logs) ; Fluent Bit (US-17) les centralise et les forwarde vers
 # OpenObserve (US-19) — pas de SIEM, pas de broker intermédiaire.
 services:
-  # Fixe les permissions du volume partagé honeypot_logs avant le démarrage
-  # des honeypots. Le volume Docker est créé en root:root, mais les services
-  # écrivent en tant que honey (uid 10001) — sans ce chown les .jsonl ne
-  # peuvent pas être créés (Permission denied).
-  init-logs:
-    image: busybox:latest
-    container_name: init-logs
-    restart: "no"
-    command: ["sh", "-c", "chown -R 10001:10001 /var/log/honeypot"]
-    volumes:
-      - honeypot_logs:/var/log/honeypot
-
   attacker:
     build:
       context: attacker
@@ -28,9 +16,6 @@ services:
     image: qualite863/honeypot-ssh:latest
     container_name: honeypot-ssh
     restart: unless-stopped
-    depends_on:
-      init-logs:
-        condition: service_completed_successfully
     # Deux ports ouverts : 22 (SSH standard, crédibilité) et 2222 (cible des
     # scripts d'attaque US-27 / DMZ US-20). Les deux pointent vers le honeypot
     # qui écoute en interne sur 2222 (port non privilégié -> process non-root).
@@ -57,9 +42,6 @@ services:
     image: qualite863/honeypot-ftp:latest
     container_name: honeypot-ftp
     restart: unless-stopped
-    depends_on:
-      init-logs:
-        condition: service_completed_successfully
     # Port de contrôle exposé sur 21 (FTP standard, crédibilité) et 2121
     # (cible des scripts d'attaque). Le honeypot écoute en interne sur 2121
     # (port non privilégié -> process non-root).
@@ -103,9 +85,6 @@ services:
     image: qualite863/honeypot-http:latest
     container_name: honeypot-http
     restart: unless-stopped
-    depends_on:
-      init-logs:
-        condition: service_completed_successfully
     # 80 (HTTP standard, crédibilité) et 8080 (cible des scripts d'attaque).
     # Le honeypot écoute en interne sur 8080 (port non privilégié -> non-root).
     ports:
@@ -129,22 +108,15 @@ services:
     container_name: fluent-bit
     restart: unless-stopped
     depends_on:
-      init-logs:
-        condition: service_completed_successfully
-      honeypot-ssh:
-        condition: service_started
-      honeypot-ftp:
-        condition: service_started
-      honeypot-http:
-        condition: service_started
-      openobserve:
-        condition: service_started
-      analyzer:
-        condition: service_started
+      - honeypot-ssh
+      - honeypot-ftp
+      - honeypot-http
+      - openobserve
+      - analyzer
     environment:
       # Identifiants d'ingestion OpenObserve (US-19), injectés dans la conf via ${...}.
-      OPENOBSERVE_USER: "admin@laruche.local"
-      OPENOBSERVE_PASSWORD: "Honeypot2026!"
+      OPENOBSERVE_USER: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      OPENOBSERVE_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
     volumes:
       # Logs honeypot en LECTURE SEULE (le collecteur ne doit pas y écrire).
       - honeypot_logs:/var/log/honeypot:ro
@@ -166,13 +138,35 @@ services:
     container_name: openobserve
     restart: unless-stopped
     environment:
-      ZO_ROOT_USER_EMAIL: "admin@laruche.local"
-      ZO_ROOT_USER_PASSWORD: "Honeypot2026!"
+      ZO_ROOT_USER_EMAIL: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      ZO_ROOT_USER_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
       ZO_DATA_DIR: "/data"
     ports:
       - "5080:5080"
     volumes:
       - openobserve_data:/data
+    security_opt:
+      - no-new-privileges:true
+
+  # US-19 : provisioning automatique des dashboards OpenObserve au démarrage.
+  # Conteneur éphémère : attend qu'OpenObserve réponde, (ré)importe les
+  # dashboards/*.json de façon idempotente, puis s'arrête.
+  dashboard-provisioner:
+    image: python:3.12-slim-bookworm
+    container_name: dashboard-provisioner
+    depends_on:
+      - openobserve
+    environment:
+      OPENOBSERVE_URL: "http://openobserve:5080"
+      OPENOBSERVE_USER: "${OPENOBSERVE_USER:-admin@laruche.local}"
+      OPENOBSERVE_PASSWORD: "${OPENOBSERVE_PASSWORD:-Honeypot2026!}"
+      DASHBOARDS_DIR: "/provision/dashboards"
+    volumes:
+      # :ro,z = lecture seule + relabel SELinux (Fedora).
+      - ./openobserve:/provision:ro,z
+    command: ["python", "/provision/provision.py"]
+    # Tâche one-shot : pas de redémarrage en boucle une fois l'import fait.
+    restart: "no"
     security_opt:
       - no-new-privileges:true
 
@@ -186,14 +180,9 @@ services:
     container_name: analyzer
     restart: unless-stopped
     depends_on:
-      init-logs:
-        condition: service_completed_successfully
-      honeypot-ssh:
-        condition: service_started
-      honeypot-ftp:
-        condition: service_started
-      honeypot-http:
-        condition: service_started
+      - honeypot-ssh
+      - honeypot-ftp
+      - honeypot-http
     environment:
       ANALYZER_LOG_DIR: "/var/log/honeypot"
       ANALYZER_ENRICHED_OUTPUT: "/var/log/honeypot/enriched/events.jsonl"

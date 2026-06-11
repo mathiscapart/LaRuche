@@ -1,0 +1,303 @@
+{
+  "version": 3,
+  "dashboardId": "geo_f887683945",
+  "title": "Honeypot — Geo & Threat Intel",
+  "description": "Géolocalisation et réputation (activé après enrichissement US-31).",
+  "role": "",
+  "owner": "admin@laruche.local",
+  "created": "2026-06-11T00:00:00.000Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "General",
+      "panels": [
+        {
+          "id": "ti_map",
+          "type": "geomap",
+          "title": "Carte mondiale des sources d'attaque",
+          "description": "Géolocalisation GeoIP des IP sources (pondérée par le volume d'events).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT enrichment_latitude as \"latitude\", enrichment_longitude as \"longitude\", count(*) as \"weight\" FROM \"honeypot_events\" WHERE enrichment_latitude IS NOT NULL GROUP BY latitude, longitude ORDER BY weight DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [],
+                "z": [],
+                "filter": [],
+                "latitude": {
+                  "label": "Latitude",
+                  "alias": "latitude",
+                  "column": "enrichment_latitude",
+                  "color": null,
+                  "aggregationFunction": null,
+                  "sortBy": null
+                },
+                "longitude": {
+                  "label": "Longitude",
+                  "alias": "longitude",
+                  "column": "enrichment_longitude",
+                  "color": null,
+                  "aggregationFunction": null,
+                  "sortBy": null
+                },
+                "weight": {
+                  "label": "Events",
+                  "alias": "weight",
+                  "column": "enrichment_latitude",
+                  "color": "#b25960",
+                  "aggregationFunction": "count",
+                  "sortBy": null
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 48,
+            "h": 16,
+            "i": 10
+          }
+        },
+        {
+          "id": "ti_country",
+          "type": "bar",
+          "title": "Top pays sources",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT enrichment_country_name as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE enrichment_country_name IS NOT NULL GROUP BY enrichment_country_name ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Pays",
+                    "alias": "x_axis_1",
+                    "column": "enrichment_country_name",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Events",
+                    "alias": "y_axis_1",
+                    "column": "enrichment_country_name",
+                    "color": "#5992b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 16,
+            "w": 24,
+            "h": 9,
+            "i": 1
+          }
+        },
+        {
+          "id": "ti_asn",
+          "type": "bar",
+          "title": "Top ASN / fournisseurs",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT enrichment_org as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE enrichment_org IS NOT NULL GROUP BY enrichment_org ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Organisation / ASN",
+                    "alias": "x_axis_1",
+                    "column": "enrichment_org",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Events",
+                    "alias": "y_axis_1",
+                    "column": "enrichment_org",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 16,
+            "w": 24,
+            "h": 9,
+            "i": 2
+          }
+        },
+        {
+          "id": "ti_abuse",
+          "type": "table",
+          "title": "Réputation des IP (AbuseIPDB)",
+          "description": "Score de réputation 0-100 (AbuseIPDB).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT src_ip as \"x_axis_1\", max(enrichment_abuse_score) as \"y_axis_1\", max(enrichment_country_code) as \"x_axis_2\" FROM \"honeypot_events\" WHERE enrichment_abuse_score IS NOT NULL GROUP BY src_ip ORDER BY y_axis_1 DESC LIMIT 25",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Source IP",
+                    "alias": "x_axis_1",
+                    "column": "src_ip",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  },
+                  {
+                    "label": "Pays",
+                    "alias": "x_axis_2",
+                    "column": "enrichment_country_code",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Score abuse",
+                    "alias": "y_axis_1",
+                    "column": "enrichment_abuse_score",
+                    "color": "#b25960",
+                    "aggregationFunction": "max",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 25,
+            "w": 48,
+            "h": 9,
+            "i": 3
+          }
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": false
+  }
+}
