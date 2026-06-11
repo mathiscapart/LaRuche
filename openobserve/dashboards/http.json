@@ -55,7 +55,7 @@
                     "label": "Hits",
                     "alias": "y_axis_1",
                     "column": "payload_path",
-                    "color": "#5960b2",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -189,7 +189,7 @@
                     "label": "Requêtes",
                     "alias": "y_axis_1",
                     "column": "payload_user_agent",
-                    "color": "#b2a759",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -264,7 +264,7 @@
                     "label": "Accès",
                     "alias": "y_axis_1",
                     "column": "payload_path",
-                    "color": "#b25960",
+                    "color": "#b259a0",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -398,7 +398,7 @@
                     "label": "Nombre de Détections",
                     "alias": "y_axis_1",
                     "column": "classification_tags",
-                    "color": "#b25960",
+                    "color": "#b27a59",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }

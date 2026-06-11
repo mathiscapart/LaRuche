@@ -55,7 +55,7 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "_timestamp",
-                    "color": "#5960b2",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -130,7 +130,7 @@
                     "label": "FTP",
                     "alias": "ftp",
                     "column": "ftp",
-                    "color": "#59b27a",
+                    "color": "#b2a759",
                     "aggregationFunction": null,
                     "sortBy": null
                   },
@@ -138,7 +138,7 @@
                     "label": "HTTP",
                     "alias": "http",
                     "column": "http",
-                    "color": "#b2a759",
+                    "color": "#59b2a7",
                     "aggregationFunction": null,
                     "sortBy": null
                   }
@@ -205,7 +205,7 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "src_ip",
-                    "color": "#5960b2",
+                    "color": "#59b27a",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -280,7 +280,7 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "event_type",
-                    "color": "#5960b2",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -338,7 +338,7 @@
                     "label": "Connexions",
                     "alias": "y_axis_1",
                     "column": "_timestamp",
-                    "color": "#5960b2",
+                    "color": "#7ab259",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -396,7 +396,7 @@
                     "label": "Commandes",
                     "alias": "y_axis_1",
                     "column": "_timestamp",
-                    "color": "#b25960",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -521,7 +521,7 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "classification_severity",
-                    "color": "#b2a759",
+                    "color": "#b25960",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -542,6 +542,64 @@
             "w": 12,
             "h": 9,
             "i": 8
+          }
+        },
+        {
+          "id": "g_volume",
+          "type": "metric",
+          "title": "Volume de logs (≈ Mo)",
+          "description": "Estimation du volume ingéré : somme de la longueur des champs textuels des events + overhead d'enveloppe JSON (~240 o/event). Approximation — OpenObserve n'expose pas la taille brute par enregistrement.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT sum(coalesce(length(payload_command),0)+coalesce(length(payload_path),0)+coalesce(length(payload_user_agent),0)+coalesce(length(payload_username),0)+coalesce(length(payload_password),0)+coalesce(length(payload_session_fingerprint),0)+coalesce(length(src_ip),0)+coalesce(length(session_id),0)+240) / 1048576.0 as \"y_axis_1\" FROM \"honeypot_events\"",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Mo (estimé)",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "color": "#596fb2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 9,
+            "i": 9
           }
         }
       ]

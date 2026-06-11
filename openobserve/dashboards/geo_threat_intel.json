@@ -128,7 +128,7 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "enrichment_country_name",
-                    "color": "#5960b2",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }

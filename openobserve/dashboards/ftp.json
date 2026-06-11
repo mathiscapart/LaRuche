@@ -55,7 +55,7 @@
                     "label": "Tentatives",
                     "alias": "y_axis_1",
                     "column": "payload_username",
-                    "color": "#5960b2",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -122,7 +122,7 @@
                     "label": "Tentatives",
                     "alias": "y_axis_1",
                     "column": "payload_password",
-                    "color": "#b25960",
+                    "color": "#59b27a",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -189,7 +189,7 @@
                     "label": "Occurrences",
                     "alias": "y_axis_1",
                     "column": "payload_command",
-                    "color": "#5960b2",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -256,7 +256,7 @@
                     "label": "Accès",
                     "alias": "y_axis_1",
                     "column": "payload_path",
-                    "color": "#59b27a",
+                    "color": "#7ab259",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -389,7 +389,7 @@
                     "label": "Connexions",
                     "alias": "y_axis_1",
                     "column": "_timestamp",
-                    "color": "#5960b2",
+                    "color": "#b2a759",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -407,67 +407,9 @@
           "layout": {
             "x": 0,
             "y": 27,
-            "w": 16,
+            "w": 24,
             "h": 9,
             "i": 6
-          }
-        },
-        {
-          "id": "f_up",
-          "type": "metric",
-          "title": "Uploads (STOR)",
-          "description": "",
-          "config": {
-            "show_legends": true,
-            "legends_position": null,
-            "unit": null,
-            "decimals": 2,
-            "base_map": {
-              "type": "osm"
-            },
-            "map_view": {
-              "zoom": 1,
-              "lat": 0,
-              "lng": 0
-            },
-            "wrap_table_cells": true
-          },
-          "queryType": "sql",
-          "queries": [
-            {
-              "query": "SELECT count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='file_upload'",
-              "vrlFunctionQuery": "",
-              "customQuery": true,
-              "fields": {
-                "stream": "honeypot_events",
-                "stream_type": "logs",
-                "x": [],
-                "y": [
-                  {
-                    "label": "Uploads",
-                    "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "color": "#b25960",
-                    "aggregationFunction": "count",
-                    "sortBy": null
-                  }
-                ],
-                "z": [],
-                "filter": []
-              },
-              "config": {
-                "promql_legend": "",
-                "layer_type": "scatter",
-                "weight_fixed": 1
-              }
-            }
-          ],
-          "layout": {
-            "x": 16,
-            "y": 27,
-            "w": 16,
-            "h": 9,
-            "i": 7
           }
         },
         {
@@ -514,7 +456,208 @@
                     "label": "Events",
                     "alias": "y_axis_1",
                     "column": "classification_severity",
-                    "color": "#b2a759",
+                    "color": "#b27a59",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 27,
+            "w": 24,
+            "h": 9,
+            "i": 8
+          }
+        },
+        {
+          "id": "f_listed",
+          "type": "h-bar",
+          "title": "Dossiers listés / parcourus (LIST / CWD / NLST)",
+          "description": "Reconnaissance d'arborescence : commandes de navigation et de listing tapées par l'attaquant (ligne brute).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_command as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='command' AND (payload_command LIKE 'CWD%' OR payload_command LIKE 'LIST%' OR payload_command LIKE 'NLST%' OR payload_command LIKE 'MLSD%') GROUP BY payload_command ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Commande de listing",
+                    "alias": "x_axis_1",
+                    "column": "payload_command",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Occurrences",
+                    "alias": "y_axis_1",
+                    "column": "payload_command",
+                    "color": "#5992b2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 36,
+            "w": 16,
+            "h": 9,
+            "i": 9
+          }
+        },
+        {
+          "id": "f_retr",
+          "type": "h-bar",
+          "title": "Fichiers récupérés (RETR)",
+          "description": "Fichiers effectivement téléchargés par l'attaquant (event file_download). Distinct de la simple navigation.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='file_download' AND payload_path IS NOT NULL GROUP BY payload_path ORDER BY y_axis_1 DESC LIMIT 20",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Fichier",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Téléchargements",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#59b27a",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 16,
+            "y": 36,
+            "w": 16,
+            "h": 9,
+            "i": 10
+          }
+        },
+        {
+          "id": "f_client",
+          "type": "h-bar",
+          "title": "Clients FTP déclarés (CLNT)",
+          "description": "Logiciel client annoncé via la commande CLNT (souvent envoyée par les outils/bots automatisés). Absent pour les clients qui ne s'identifient pas.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT payload_path as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ftp' AND event_type='command' AND payload_command LIKE 'CLNT%' GROUP BY payload_path ORDER BY y_axis_1 DESC LIMIT 15",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Client",
+                    "alias": "x_axis_1",
+                    "column": "payload_path",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Sessions",
+                    "alias": "y_axis_1",
+                    "column": "payload_path",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -531,10 +674,10 @@
           ],
           "layout": {
             "x": 32,
-            "y": 27,
+            "y": 36,
             "w": 16,
             "h": 9,
-            "i": 8
+            "i": 11
           }
         }
       ]

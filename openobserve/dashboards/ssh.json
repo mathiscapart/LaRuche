@@ -55,7 +55,7 @@
                     "label": "Tentatives",
                     "alias": "y_axis_1",
                     "column": "payload_password",
-                    "color": "#b25960",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -122,7 +122,7 @@
                     "label": "Tentatives",
                     "alias": "y_axis_1",
                     "column": "payload_username",
-                    "color": "#5960b2",
+                    "color": "#59b27a",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -189,7 +189,7 @@
                     "label": "Tentatives",
                     "alias": "y_axis_1",
                     "column": "payload_auth_method",
-                    "color": "#59b27a",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -256,7 +256,7 @@
                     "label": "Sessions",
                     "alias": "y_axis_1",
                     "column": "classification_profile",
-                    "color": "#b2a759",
+                    "color": "#7ab259",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -323,7 +323,7 @@
                     "label": "Occurrences",
                     "alias": "y_axis_1",
                     "column": "payload_command",
-                    "color": "#5960b2",
+                    "color": "#5992b2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -398,7 +398,7 @@
                     "label": "Sessions",
                     "alias": "y_axis_1",
                     "column": "payload_session_fingerprint",
-                    "color": "#5960b2",
+                    "color": "#59b27a",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
@@ -572,7 +572,7 @@
                     "label": "Cmd/session",
                     "alias": "y_axis_1",
                     "column": "_timestamp",
-                    "color": "#59b27a",
+                    "color": "#596fb2",
                     "aggregationFunction": "count",
                     "sortBy": null
                   }
