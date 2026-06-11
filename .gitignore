@@ -6,3 +6,4 @@ __pycache__
 .ruff_cache
 attacker/wordlists/
 attacker/reports/
+data/geoip/
