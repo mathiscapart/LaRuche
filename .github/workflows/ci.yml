@@ -26,6 +26,29 @@ jobs:
       - run: pip install bandit
       - run: bandit -r honeypots/ pipeline/ dashboard/ -ll -ii
 
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest
+          # Installe les requirements de chaque module automatiquement
+          find . -name "requirements*.txt" \
+            -not -path "./.git/*" \
+            | xargs -I {} pip install -r {}
+
+      - name: Run all tests
+        run: pytest --tb=short -v
+
   # Valide que les 3 secrets d'enrichissement sont montes et fonctionnels
   # (GeoIP via license MaxMind, AbuseIPDB, GreyNoise) sans monter la stack.
   enrich:
@@ -144,7 +167,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "qualite863/${{ matrix.image }}:latest"
+          image-ref: "qualite863/${{ matrix.image }}:${{ github.sha }}"
           format: "table"
           exit-code: 1
           ignore-unfixed: true
