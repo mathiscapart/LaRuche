@@ -102,6 +102,16 @@ def _template(name: str) -> str:
         return ""
 
 
+def render_login(error: str = "") -> str:
+    """Page de login WP, avec un éventuel encart d'erreur injecté dans le placeholder.
+
+    Réutilisée par le POST (login raté) pour renvoyer la page complète stylée
+    plutôt qu'un message nu — un vrai WordPress réaffiche le formulaire avec
+    l'erreur en tête.
+    """
+    return _template("wp-login.html").replace("<!--LOGIN_ERROR-->", error)
+
+
 @router.get("/", response_class=HTMLResponse)
 async def home() -> HTMLResponse:
     return HTMLResponse(_template("home.html"))
@@ -109,7 +119,7 @@ async def home() -> HTMLResponse:
 
 @router.get("/wp-login.php", response_class=HTMLResponse)
 async def wp_login() -> HTMLResponse:
-    response = HTMLResponse(_template("wp-login.html"))
+    response = HTMLResponse(render_login())
     # Un vrai WordPress dépose ce cookie pour vérifier le support des cookies.
     response.set_cookie("wordpress_test_cookie", "WP Cookie check", path="/")
     return response

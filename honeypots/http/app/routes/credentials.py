@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from app.config import ALLOWED_WP_CREDENTIALS, LOGGED_IN_COOKIE
 from app.events.builder import build_event, emit
 from app.middleware.logging import client_ip
+from app.routes.wordpress import render_login
 
 router = APIRouter()
 
@@ -107,7 +108,7 @@ async def wp_login_post(request: Request) -> Response:
         response.set_cookie(LOGGED_IN_COOKIE, f"{username}|fake", path="/", httponly=True)
         return response
 
-    return HTMLResponse(_login_error(username), status_code=200)
+    return HTMLResponse(render_login(_login_error(username)), status_code=200)
 
 
 @router.post("/xmlrpc.php")
