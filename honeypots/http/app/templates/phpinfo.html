@@ -1,16 +1,888 @@
-<!DOCTYPE html>
-<html><head><title>phpinfo()</title>
-<style>body{background:#fff;font-family:sans-serif}.e{background:#ccf;font-weight:bold}.v{background:#eee}</style>
-</head>
-<body>
-<h1 class="p">PHP Version 7.4.33</h1>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<style type="text/css">
+body {background-color: #fff; color: #222; font-family: sans-serif;}
+pre {margin: 0; font-family: monospace;}
+a:link {color: #009; text-decoration: none; background-color: #fff;}
+a:hover {text-decoration: underline;}
+table {border-collapse: collapse; border: 0; width: 934px; box-shadow: 1px 2px 3px #ccc;}
+.center {text-align: center;}
+.center table {margin: 1em auto; text-align: left;}
+.center th {text-align: center !important;}
+td, th {border: 1px solid #666; font-size: 75%; vertical-align: baseline; padding: 4px 5px;}
+th {position: sticky; top: 0; background: inherit;}
+h1 {font-size: 150%;}
+h2 {font-size: 125%;}
+.p {text-align: left;}
+.e {background-color: #ccf; width: 300px; font-weight: bold;}
+.h {background-color: #99c; font-weight: bold;}
+.v {background-color: #ddd; max-width: 300px; overflow-x: auto; word-wrap: break-word;}
+.v i {color: #999;}
+img {float: right; border: 0;}
+hr {width: 934px; background-color: #ccc; border: 0; height: 1px;}
+</style>
+<title>PHP 7.4.33 - phpinfo()</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head>
+<body><div class="center">
 <table>
-<tr><td class="e">System</td><td class="v">Linux honeypot-http 5.10.0-23-amd64 #1 SMP Debian 5.10.179-1 x86_64</td></tr>
-<tr><td class="e">Server API</td><td class="v">Apache 2.0 Handler</td></tr>
-<tr><td class="e">Configuration File (php.ini) Path</td><td class="v">/etc/php/7.4/apache2</td></tr>
-<tr><td class="e">Loaded Configuration File</td><td class="v">/etc/php/7.4/apache2/php.ini</td></tr>
-<tr><td class="e">PHP API</td><td class="v">20190902</td></tr>
-<tr><td class="e">Loaded Extensions</td><td class="v">Core, date, libxml, openssl, pcre, zlib, mysqli, curl, json, mbstring, gd</td></tr>
-<tr><td class="e">DOCUMENT_ROOT</td><td class="v">/var/www/html</td></tr>
+<tr class="h"><td>
+<a href="http://www.php.net/"><img border="0" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAxMDAgNTAiPjxnPjxlbGxpcHNlIGN4PSI1MCIgY3k9IjI1IiByeD0iNDkiIHJ5PSIyMCIgZmlsbD0iI2U1ZTVlNSIgc3Ryb2tlPSIjYTBhMGEwIi8+PHRleHQgeD0iNTAiIHk9IjMzIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzc3N2JiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGhwPC90ZXh0PjwvZz48L3N2Zz4=" alt="PHP logo" /></a>
+<h1 class="p">PHP Version 7.4.33</h1>
+</td></tr>
 </table>
+<table>
+<tr><td class="e">System </td><td class="v">Linux honeypot-http 5.10.0-26-amd64 #1 SMP Debian 5.10.197-1 (2023-09-29) x86_64 </td></tr>
+<tr><td class="e">Build Date </td><td class="v">Nov  2 2022 06:51:38 </td></tr>
+<tr><td class="e">Server API </td><td class="v">Apache 2.0 Handler </td></tr>
+<tr><td class="e">Virtual Directory Support </td><td class="v">disabled </td></tr>
+<tr><td class="e">Configuration File (php.ini) Path </td><td class="v">/etc/php/7.4/apache2 </td></tr>
+<tr><td class="e">Loaded Configuration File </td><td class="v">/etc/php/7.4/apache2/php.ini </td></tr>
+<tr><td class="e">Scan this dir for additional .ini files </td><td class="v">/etc/php/7.4/apache2/conf.d </td></tr>
+<tr><td class="e">Additional .ini files parsed </td><td class="v">/etc/php/7.4/apache2/conf.d/10-mysqlnd.ini, /etc/php/7.4/apache2/conf.d/10-opcache.ini, /etc/php/7.4/apache2/conf.d/10-pdo.ini, /etc/php/7.4/apache2/conf.d/15-xml.ini, /etc/php/7.4/apache2/conf.d/20-calendar.ini, /etc/php/7.4/apache2/conf.d/20-ctype.ini, /etc/php/7.4/apache2/conf.d/20-curl.ini, /etc/php/7.4/apache2/conf.d/20-dom.ini, /etc/php/7.4/apache2/conf.d/20-exif.ini, /etc/php/7.4/apache2/conf.d/20-ffi.ini, /etc/php/7.4/apache2/conf.d/20-fileinfo.ini, /etc/php/7.4/apache2/conf.d/20-ftp.ini, /etc/php/7.4/apache2/conf.d/20-gd.ini, /etc/php/7.4/apache2/conf.d/20-gettext.ini, /etc/php/7.4/apache2/conf.d/20-iconv.ini, /etc/php/7.4/apache2/conf.d/20-json.ini, /etc/php/7.4/apache2/conf.d/20-mbstring.ini, /etc/php/7.4/apache2/conf.d/20-mysqli.ini, /etc/php/7.4/apache2/conf.d/20-pdo_mysql.ini, /etc/php/7.4/apache2/conf.d/20-phar.ini, /etc/php/7.4/apache2/conf.d/20-posix.ini, /etc/php/7.4/apache2/conf.d/20-readline.ini, /etc/php/7.4/apache2/conf.d/20-shmop.ini, /etc/php/7.4/apache2/conf.d/20-simplexml.ini, /etc/php/7.4/apache2/conf.d/20-sockets.ini, /etc/php/7.4/apache2/conf.d/20-sysvmsg.ini, /etc/php/7.4/apache2/conf.d/20-sysvsem.ini, /etc/php/7.4/apache2/conf.d/20-sysvshm.ini, /etc/php/7.4/apache2/conf.d/20-tokenizer.ini, /etc/php/7.4/apache2/conf.d/20-xmlreader.ini, /etc/php/7.4/apache2/conf.d/20-xmlwriter.ini, /etc/php/7.4/apache2/conf.d/20-xsl.ini, /etc/php/7.4/apache2/conf.d/20-zip.ini </td></tr>
+<tr><td class="e">PHP API </td><td class="v">20190902 </td></tr>
+<tr><td class="e">PHP Extension </td><td class="v">20190902 </td></tr>
+<tr><td class="e">Zend Extension </td><td class="v">320190902 </td></tr>
+<tr><td class="e">Zend Extension Build </td><td class="v">API320190902,NTS </td></tr>
+<tr><td class="e">PHP Extension Build </td><td class="v">API20190902,NTS </td></tr>
+<tr><td class="e">Debug Build </td><td class="v">no </td></tr>
+<tr><td class="e">Thread Safety </td><td class="v">disabled </td></tr>
+<tr><td class="e">Zend Signal Handling </td><td class="v">enabled </td></tr>
+<tr><td class="e">Zend Memory Manager </td><td class="v">enabled </td></tr>
+<tr><td class="e">Zend Multibyte Support </td><td class="v">provided by mbstring </td></tr>
+<tr><td class="e">IPv6 Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">DTrace Support </td><td class="v">disabled </td></tr>
+<tr><td class="e">Registered PHP Streams </td><td class="v">https, ftps, compress.zlib, php, file, glob, data, http, ftp, phar </td></tr>
+<tr><td class="e">Registered Stream Socket Transports </td><td class="v">tcp, udp, unix, udg, ssl, tls, tlsv1.0, tlsv1.1, tlsv1.2, tlsv1.3 </td></tr>
+<tr><td class="e">Registered Stream Filters </td><td class="v">zlib.*, string.rot13, string.toupper, string.tolower, string.strip_tags, convert.*, consumed, dechunk, convert.iconv.* </td></tr>
+</table>
+<table>
+<tr class="h"><td>
+<a href="http://www.zend.com/"><img border="0" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTMiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAxMTMgMzAiPjx0ZXh0IHg9IjAiIHk9IjIzIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZTYzMTciPlplbmQ8L3RleHQ+PC9zdmc+" alt="Zend logo" /></a>
+This program makes use of the Zend Scripting Language Engine:<br />Zend Engine v3.4.0, Copyright (c) Zend Technologies<br />&nbsp;&nbsp;&nbsp;&nbsp;with Zend OPcache v7.4.33, Copyright (c), by Zend Technologies<br /></td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_apache2handler">apache2handler</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Apache Version</th><td>Apache/2.4.57 (Debian)</td></tr>
+</table>
+<table>
+<tr class="h"><td>Apache Version </td><td>Apache/2.4.57 (Debian) </td></tr>
+<tr><td class="e">Apache API Version </td><td class="v">20120211 </td></tr>
+<tr><td class="e">Server Administrator </td><td class="v">webmaster@localhost </td></tr>
+<tr><td class="e">Hostname:Port </td><td class="v">localhost:0 </td></tr>
+<tr><td class="e">User/Group </td><td class="v">www-data(33)/33 </td></tr>
+<tr><td class="e">Max Requests </td><td class="v">Per Child: 0 - Keep Alive: on - Max Per Connection: 100 </td></tr>
+<tr><td class="e">Timeouts </td><td class="v">Connection: 300 - Keep-Alive: 5 </td></tr>
+<tr><td class="e">Virtual Server </td><td class="v">No </td></tr>
+<tr><td class="e">Server Root </td><td class="v">/etc/apache2 </td></tr>
+<tr><td class="e">Loaded Modules </td><td class="v">core mod_so mod_watchdog http_core mod_log_config mod_logio mod_version mod_unixd mod_access_compat mod_alias mod_auth_basic mod_authn_core mod_authn_file mod_authz_core mod_authz_host mod_authz_user mod_autoindex mod_deflate mod_dir mod_env mod_filter mod_mime prefork mod_negotiation mod_php7 mod_reqtimeout mod_rewrite mod_setenvif mod_status </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">engine </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">last_modified </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">xbithack </td><td class="v">0 </td><td class="v">0 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Apache Environment</th></tr>
+<tr class="h"><th>Variable</th><th>Value</th></tr>
+<tr><td class="e">HTTP_HOST </td><td class="v">localhost </td></tr>
+<tr><td class="e">HTTP_USER_AGENT </td><td class="v">Mozilla/5.0 </td></tr>
+<tr><td class="e">HTTP_ACCEPT </td><td class="v">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 </td></tr>
+<tr><td class="e">HTTP_CONNECTION </td><td class="v">keep-alive </td></tr>
+<tr><td class="e">PATH </td><td class="v">/usr/local/bin:/usr/bin:/bin </td></tr>
+<tr><td class="e">SERVER_SIGNATURE </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">SERVER_SOFTWARE </td><td class="v">Apache/2.4.57 (Debian) </td></tr>
+<tr><td class="e">SERVER_NAME </td><td class="v">localhost </td></tr>
+<tr><td class="e">SERVER_ADDR </td><td class="v">127.0.0.1 </td></tr>
+<tr><td class="e">SERVER_PORT </td><td class="v">80 </td></tr>
+<tr><td class="e">REMOTE_ADDR </td><td class="v">127.0.0.1 </td></tr>
+<tr><td class="e">DOCUMENT_ROOT </td><td class="v">/var/www/html </td></tr>
+<tr><td class="e">REQUEST_SCHEME </td><td class="v">http </td></tr>
+<tr><td class="e">SERVER_ADMIN </td><td class="v">webmaster@localhost </td></tr>
+<tr><td class="e">SCRIPT_FILENAME </td><td class="v">/var/www/html/info.php </td></tr>
+<tr><td class="e">REMOTE_PORT </td><td class="v">54123 </td></tr>
+<tr><td class="e">GATEWAY_INTERFACE </td><td class="v">CGI/1.1 </td></tr>
+<tr><td class="e">SERVER_PROTOCOL </td><td class="v">HTTP/1.1 </td></tr>
+<tr><td class="e">REQUEST_METHOD </td><td class="v">GET </td></tr>
+<tr><td class="e">QUERY_STRING </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">REQUEST_URI </td><td class="v">/info.php </td></tr>
+<tr><td class="e">SCRIPT_NAME </td><td class="v">/info.php </td></tr>
+</table>
+<table>
+<tr class="h"><th>HTTP Headers Information</th></tr>
+<tr class="h"><th>HTTP Request Headers</th></tr>
+<tr><td class="e">HTTP Request </td><td class="v">GET /info.php HTTP/1.1 </td></tr>
+<tr><td class="e">Host </td><td class="v">localhost </td></tr>
+<tr><td class="e">User-Agent </td><td class="v">Mozilla/5.0 </td></tr>
+<tr><td class="e">Accept </td><td class="v">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 </td></tr>
+<tr><td class="e">Connection </td><td class="v">keep-alive </td></tr>
+<tr class="h"><th>HTTP Response Headers</th></tr>
+<tr><td class="e">X-Powered-By </td><td class="v">PHP/7.4.33 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_bcmath">bcmath</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>BCMath support</th><td>enabled</td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">bcmath.scale </td><td class="v">0 </td><td class="v">0 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_calendar">calendar</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Calendar support</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_Core">Core</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>PHP Version</th><td>7.4.33</td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">allow_url_fopen </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">allow_url_include </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">arg_separator.input </td><td class="v">&amp; </td><td class="v">&amp; </td></tr>
+<tr><td class="e">arg_separator.output </td><td class="v">&amp; </td><td class="v">&amp; </td></tr>
+<tr><td class="e">auto_append_file </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">auto_globals_jit </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">auto_prepend_file </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">browscap </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">default_charset </td><td class="v">UTF-8 </td><td class="v">UTF-8 </td></tr>
+<tr><td class="e">default_mimetype </td><td class="v">text/html </td><td class="v">text/html </td></tr>
+<tr><td class="e">disable_classes </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">disable_functions </td><td class="v">pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_get_handler,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,pcntl_async_signals, </td><td class="v">pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_get_handler,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,pcntl_async_signals, </td></tr>
+<tr><td class="e">display_errors </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">display_startup_errors </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">doc_root </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">docref_ext </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">docref_root </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">enable_dl </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">enable_post_data_reading </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">error_append_string </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">error_log </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">error_prepend_string </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">error_reporting </td><td class="v">22519 </td><td class="v">22519 </td></tr>
+<tr><td class="e">expose_php </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">file_uploads </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">highlight.comment </td><td class="v"><span style="color: #FF8000">#FF8000</span> </td><td class="v"><span style="color: #FF8000">#FF8000</span> </td></tr>
+<tr><td class="e">highlight.default </td><td class="v"><span style="color: #0000BB">#0000BB</span> </td><td class="v"><span style="color: #0000BB">#0000BB</span> </td></tr>
+<tr><td class="e">highlight.html </td><td class="v"><span style="color: #000000">#000000</span> </td><td class="v"><span style="color: #000000">#000000</span> </td></tr>
+<tr><td class="e">highlight.keyword </td><td class="v"><span style="color: #007700">#007700</span> </td><td class="v"><span style="color: #007700">#007700</span> </td></tr>
+<tr><td class="e">highlight.string </td><td class="v"><span style="color: #DD0000">#DD0000</span> </td><td class="v"><span style="color: #DD0000">#DD0000</span> </td></tr>
+<tr><td class="e">html_errors </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">ignore_repeated_errors </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">ignore_repeated_source </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">implicit_flush </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">include_path </td><td class="v">.:/usr/share/php </td><td class="v">.:/usr/share/php </td></tr>
+<tr><td class="e">input_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">internal_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">log_errors </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">log_errors_max_len </td><td class="v">1024 </td><td class="v">1024 </td></tr>
+<tr><td class="e">mail.add_x_header </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">mail.force_extra_parameters </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mail.log </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">max_execution_time </td><td class="v">30 </td><td class="v">30 </td></tr>
+<tr><td class="e">max_file_uploads </td><td class="v">20 </td><td class="v">20 </td></tr>
+<tr><td class="e">max_input_nesting_level </td><td class="v">64 </td><td class="v">64 </td></tr>
+<tr><td class="e">max_input_time </td><td class="v">60 </td><td class="v">60 </td></tr>
+<tr><td class="e">max_input_vars </td><td class="v">1000 </td><td class="v">1000 </td></tr>
+<tr><td class="e">memory_limit </td><td class="v">128M </td><td class="v">128M </td></tr>
+<tr><td class="e">open_basedir </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">output_buffering </td><td class="v">4096 </td><td class="v">4096 </td></tr>
+<tr><td class="e">output_handler </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">post_max_size </td><td class="v">8M </td><td class="v">8M </td></tr>
+<tr><td class="e">precision </td><td class="v">14 </td><td class="v">14 </td></tr>
+<tr><td class="e">realpath_cache_size </td><td class="v">4096K </td><td class="v">4096K </td></tr>
+<tr><td class="e">realpath_cache_ttl </td><td class="v">120 </td><td class="v">120 </td></tr>
+<tr><td class="e">register_argc_argv </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">report_memleaks </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">report_zend_debug </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">request_order </td><td class="v">GP </td><td class="v">GP </td></tr>
+<tr><td class="e">sender_pool_size </td><td class="v">3 </td><td class="v">3 </td></tr>
+<tr><td class="e">serialize_precision </td><td class="v">-1 </td><td class="v">-1 </td></tr>
+<tr><td class="e">short_open_tag </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">SMTP </td><td class="v">localhost </td><td class="v">localhost </td></tr>
+<tr><td class="e">smtp_port </td><td class="v">25 </td><td class="v">25 </td></tr>
+<tr><td class="e">sys_temp_dir </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">track_errors </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">unserialize_callback_func </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">upload_max_filesize </td><td class="v">2M </td><td class="v">2M </td></tr>
+<tr><td class="e">upload_tmp_dir </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">user_dir </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">user_ini.cache_ttl </td><td class="v">300 </td><td class="v">300 </td></tr>
+<tr><td class="e">user_ini.filename </td><td class="v">.user.ini </td><td class="v">.user.ini </td></tr>
+<tr><td class="e">variables_order </td><td class="v">GPCS </td><td class="v">GPCS </td></tr>
+<tr><td class="e">zend.assertions </td><td class="v">-1 </td><td class="v">-1 </td></tr>
+<tr><td class="e">zend.detect_unicode </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">zend.enable_gc </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">zend.exception_ignore_args </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">zend.multibyte </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">zend.script_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">zend.signal_check </td><td class="v">Off </td><td class="v">Off </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_ctype">ctype</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>ctype functions</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_curl">curl</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>cURL support</th><td>enabled</td></tr>
+<tr><td class="e">cURL Information </td><td class="v">7.74.0 </td></tr>
+<tr><td class="e">Age </td><td class="v">5 </td></tr>
+<tr class="h"><th>Features</th><th>&nbsp;</th></tr>
+<tr><td class="e">AsynchDNS </td><td class="v">Yes </td></tr>
+<tr><td class="e">CharConv </td><td class="v">No </td></tr>
+<tr><td class="e">Debug </td><td class="v">No </td></tr>
+<tr><td class="e">GSS-Negotiate </td><td class="v">No </td></tr>
+<tr><td class="e">IDN </td><td class="v">Yes </td></tr>
+<tr><td class="e">IPv6 </td><td class="v">Yes </td></tr>
+<tr><td class="e">krb4 </td><td class="v">No </td></tr>
+<tr><td class="e">Largefile </td><td class="v">Yes </td></tr>
+<tr><td class="e">libz </td><td class="v">Yes </td></tr>
+<tr><td class="e">NTLM </td><td class="v">Yes </td></tr>
+<tr><td class="e">NTLMWB </td><td class="v">Yes </td></tr>
+<tr><td class="e">SPNEGO </td><td class="v">Yes </td></tr>
+<tr><td class="e">SSL </td><td class="v">Yes </td></tr>
+<tr><td class="e">SSPI </td><td class="v">No </td></tr>
+<tr><td class="e">TLS-SRP </td><td class="v">Yes </td></tr>
+<tr><td class="e">HTTP2 </td><td class="v">Yes </td></tr>
+<tr><td class="e">GSSAPI </td><td class="v">Yes </td></tr>
+<tr><td class="e">KERBEROS5 </td><td class="v">Yes </td></tr>
+<tr><td class="e">UNIX_SOCKETS </td><td class="v">Yes </td></tr>
+<tr><td class="e">PSL </td><td class="v">Yes </td></tr>
+<tr><td class="e">HTTPS_PROXY </td><td class="v">Yes </td></tr>
+<tr><td class="e">MULTI_SSL </td><td class="v">No </td></tr>
+<tr><td class="e">BROTLI </td><td class="v">Yes </td></tr>
+<tr class="h"><th>Protocols</th><th>&nbsp;</th></tr>
+<tr><td class="e">Protocols </td><td class="v">dict, file, ftp, ftps, gopher, http, https, imap, imaps, ldap, ldaps, pop3, pop3s, rtmp, rtsp, scp, sftp, smb, smbs, smtp, smtps, telnet, tftp </td></tr>
+<tr><td class="e">Host </td><td class="v">x86_64-pc-linux-gnu </td></tr>
+<tr><td class="e">SSL Version </td><td class="v">OpenSSL/1.1.1n </td></tr>
+<tr><td class="e">ZLib Version </td><td class="v">1.2.11 </td></tr>
+<tr><td class="e">libSSH Version </td><td class="v">libssh2/1.9.0 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_date">date</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>date/time support</th><td>enabled</td></tr>
+<tr class="h"><th>timelib version</th><td>2018.04</td></tr>
+<tr class="h"><th>"Olson" Timezone Database Version</th><td>2022.5</td></tr>
+<tr class="h"><th>Timezone Database</th><td>internal</td></tr>
+<tr><td class="e">Default timezone </td><td class="v">UTC </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">date.default_latitude </td><td class="v">31.7667 </td><td class="v">31.7667 </td></tr>
+<tr><td class="e">date.default_longitude </td><td class="v">35.2333 </td><td class="v">35.2333 </td></tr>
+<tr><td class="e">date.sunrise_zenith </td><td class="v">90.583333 </td><td class="v">90.583333 </td></tr>
+<tr><td class="e">date.sunset_zenith </td><td class="v">90.583333 </td><td class="v">90.583333 </td></tr>
+<tr><td class="e">date.timezone </td><td class="v">UTC </td><td class="v">UTC </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_dom">dom</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>DOM/XML</th><td>enabled</td></tr>
+<tr><td class="e">DOM/XML API Version </td><td class="v">20031129 </td></tr>
+<tr><td class="e">libxml Version </td><td class="v">2.9.10 </td></tr>
+<tr><td class="e">HTML Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">XPath Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">XPointer Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">Schema Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">RelaxNG Support </td><td class="v">enabled </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_exif">exif</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>EXIF Support</th><td>enabled</td></tr>
+<tr><td class="e">Supported EXIF Version </td><td class="v">0220 </td></tr>
+<tr><td class="e">Supported filetypes </td><td class="v">JPEG, TIFF </td></tr>
+<tr><td class="e">Multibyte decoding support using mbstring </td><td class="v">enabled </td></tr>
+<tr><td class="e">Extended EXIF tag formats </td><td class="v">Canon, Casio, Fujifilm, Nikon, Olympus, Samsung, Panasonic, DJI, Sony, Pentax, Minolta, Sigma, Foveon, Kyocera, Ricoh, AGFA, Epson </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">exif.decode_jis_intel </td><td class="v">JIS </td><td class="v">JIS </td></tr>
+<tr><td class="e">exif.decode_jis_motorola </td><td class="v">JIS </td><td class="v">JIS </td></tr>
+<tr><td class="e">exif.decode_unicode_intel </td><td class="v">UCS-2LE </td><td class="v">UCS-2LE </td></tr>
+<tr><td class="e">exif.decode_unicode_motorola </td><td class="v">UCS-2BE </td><td class="v">UCS-2BE </td></tr>
+<tr><td class="e">exif.encode_jis </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">exif.encode_unicode </td><td class="v">ISO-8859-15 </td><td class="v">ISO-8859-15 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_fileinfo">fileinfo</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>fileinfo support</th><td>enabled</td></tr>
+<tr><td class="e">libmagic </td><td class="v">539 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_filter">filter</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">filter.default </td><td class="v">unsafe_raw </td><td class="v">unsafe_raw </td></tr>
+<tr><td class="e">filter.default_flags </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_ftp">ftp</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>FTP support</th><td>enabled</td></tr>
+<tr><td class="e">FTPS support </td><td class="v">enabled </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_gd">gd</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>GD Support</th><td>enabled</td></tr>
+<tr><td class="e">GD Version </td><td class="v">bundled (2.1.0 compatible) </td></tr>
+<tr><td class="e">FreeType Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">FreeType Linkage </td><td class="v">with freetype </td></tr>
+<tr><td class="e">GIF Read Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">GIF Create Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">JPEG Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">PNG Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">WBMP Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">XPM Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">XBM Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">WebP Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">BMP Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">TGA Read Support </td><td class="v">enabled </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">gd.jpeg_ignore_warning </td><td class="v">1 </td><td class="v">1 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_hash">hash</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>hash support</th><td>enabled</td></tr>
+<tr><td class="e">Hashing Engines </td><td class="v">md2 md4 md5 sha1 sha224 sha256 sha384 sha512/224 sha512/256 sha512 sha3-224 sha3-256 sha3-384 sha3-512 ripemd128 ripemd160 ripemd256 ripemd320 whirlpool tiger128,3 tiger160,3 tiger192,3 tiger128,4 tiger160,4 tiger192,4 snefru snefru256 gost gost-crypto adler32 crc32 crc32b crc32c fnv132 fnv1a32 fnv164 fnv1a64 joaat haval128,3 haval160,3 haval192,3 haval224,3 haval256,3 haval128,4 haval160,4 haval192,4 haval224,4 haval256,4 haval128,5 haval160,5 haval192,5 haval224,5 haval256,5 </td></tr>
+</table>
+<table>
+<tr class="h"><th>MHASH support</th><td>Enabled</td></tr>
+<tr class="h"><th>MHASH API Version</th><td>Emulated Support</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_iconv">iconv</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>iconv support</th><td>enabled</td></tr>
+<tr><td class="e">iconv implementation </td><td class="v">glibc </td></tr>
+<tr><td class="e">iconv library version </td><td class="v">2.31 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">iconv.input_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">iconv.internal_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">iconv.output_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_json">json</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>json support</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_libxml">libxml</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>libXML support</th><td>active</td></tr>
+<tr><td class="e">libXML Compiled Version </td><td class="v">2.9.10 </td></tr>
+<tr><td class="e">libXML Loaded Version </td><td class="v">20910 </td></tr>
+<tr><td class="e">libXML streams </td><td class="v">enabled </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_mbstring">mbstring</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Multibyte Support</th><td>enabled</td></tr>
+<tr class="h"><th>Multibyte string engine</th><td>libmbfl</td></tr>
+<tr class="h"><th>HTTP input encoding translation</th><td>disabled</td></tr>
+<tr><td class="e">libmbfl version </td><td class="v">1.3.2 </td></tr>
+</table>
+<table>
+<tr class="h"><td>mbstring extension makes use of "streamable kanji code filter and converter", which is distributed under the GNU Lesser General Public License version 2.1.</td></tr>
+</table>
+<table>
+<tr class="h"><th>Multibyte (japanese) Regex support</th><td>enabled</td></tr>
+<tr class="h"><th>Multibyte regex (oniguruma) version</th><td>6.9.6</td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">mbstring.detect_order </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mbstring.encoding_translation </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">mbstring.func_overload </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">mbstring.http_input </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mbstring.http_output </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mbstring.http_output_conv_mimetypes </td><td class="v">^(text/|application/xhtml\+xml) </td><td class="v">^(text/|application/xhtml\+xml) </td></tr>
+<tr><td class="e">mbstring.internal_encoding </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mbstring.language </td><td class="v">neutral </td><td class="v">neutral </td></tr>
+<tr><td class="e">mbstring.regex_retry_limit </td><td class="v">1000000 </td><td class="v">1000000 </td></tr>
+<tr><td class="e">mbstring.regex_stack_limit </td><td class="v">100000 </td><td class="v">100000 </td></tr>
+<tr><td class="e">mbstring.strict_detection </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">mbstring.substitute_character </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_mysqli">mysqli</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>MysqlI Support</th><td>enabled</td></tr>
+<tr><td class="e">Client API library version </td><td class="v">mysqlnd 7.4.33 </td></tr>
+<tr><td class="e">Active Persistent Links </td><td class="v">0 </td></tr>
+<tr><td class="e">Inactive Persistent Links </td><td class="v">0 </td></tr>
+<tr><td class="e">Active Links </td><td class="v">0 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">mysqli.allow_local_infile </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">mysqli.allow_persistent </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">mysqli.default_host </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mysqli.default_port </td><td class="v">3306 </td><td class="v">3306 </td></tr>
+<tr><td class="e">mysqli.default_pw </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mysqli.default_socket </td><td class="v">/run/mysqld/mysqld.sock </td><td class="v">/run/mysqld/mysqld.sock </td></tr>
+<tr><td class="e">mysqli.default_user </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">mysqli.max_links </td><td class="v">Unlimited </td><td class="v">Unlimited </td></tr>
+<tr><td class="e">mysqli.max_persistent </td><td class="v">Unlimited </td><td class="v">Unlimited </td></tr>
+<tr><td class="e">mysqli.reconnect </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">mysqli.rollback_on_cached_plink </td><td class="v">Off </td><td class="v">Off </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_mysqlnd">mysqlnd</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>mysqlnd</th><td>enabled</td></tr>
+<tr><td class="e">Version </td><td class="v">mysqlnd 7.4.33 </td></tr>
+<tr><td class="e">Compression </td><td class="v">supported </td></tr>
+<tr><td class="e">core SSL </td><td class="v">supported </td></tr>
+<tr><td class="e">extended SSL </td><td class="v">supported </td></tr>
+<tr><td class="e">Command buffer size </td><td class="v">4096 </td></tr>
+<tr><td class="e">Read buffer size </td><td class="v">32768 </td></tr>
+<tr><td class="e">Read timeout </td><td class="v">86400 </td></tr>
+<tr><td class="e">Collecting statistics </td><td class="v">Yes </td></tr>
+<tr><td class="e">Collecting memory statistics </td><td class="v">No </td></tr>
+<tr><td class="e">Tracing </td><td class="v"><i>n/a</i> </td></tr>
+<tr><td class="e">Loaded plugins </td><td class="v">mysqlnd,debug_trace,auth_plugin_mysql_native_password,auth_plugin_mysql_clear_password,auth_plugin_caching_sha2_password,auth_plugin_sha256_password </td></tr>
+<tr><td class="e">API Extensions </td><td class="v">mysqli,pdo_mysql </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_openssl">openssl</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>OpenSSL support</th><td>enabled</td></tr>
+<tr><td class="e">OpenSSL Library Version </td><td class="v">OpenSSL 1.1.1n  15 Mar 2022 </td></tr>
+<tr><td class="e">OpenSSL Header Version </td><td class="v">OpenSSL 1.1.1n  15 Mar 2022 </td></tr>
+<tr><td class="e">Openssl default config </td><td class="v">/usr/lib/ssl/openssl.cnf </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">openssl.cafile </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">openssl.capath </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_pcre">pcre</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>PCRE (Perl Compatible Regular Expressions) Support</th><td>enabled</td></tr>
+<tr><td class="e">PCRE Library Version </td><td class="v">10.36 2020-12-04 </td></tr>
+<tr><td class="e">PCRE Unicode Version </td><td class="v">13.0.0 </td></tr>
+<tr><td class="e">PCRE JIT Support </td><td class="v">enabled </td></tr>
+<tr><td class="e">PCRE JIT Target </td><td class="v">x86 64bit (little endian + unaligned) </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">pcre.backtrack_limit </td><td class="v">1000000 </td><td class="v">1000000 </td></tr>
+<tr><td class="e">pcre.jit </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">pcre.recursion_limit </td><td class="v">100000 </td><td class="v">100000 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_PDO">PDO</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>PDO support</th><td>enabled</td></tr>
+<tr><td class="e">PDO drivers </td><td class="v">mysql </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_pdo_mysql">pdo_mysql</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>PDO Driver for MySQL</th><td>enabled</td></tr>
+<tr><td class="e">Client API version </td><td class="v">mysqlnd 7.4.33 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">pdo_mysql.default_socket </td><td class="v">/run/mysqld/mysqld.sock </td><td class="v">/run/mysqld/mysqld.sock </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_Phar">Phar</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Phar: PHP Archive support</th><td>enabled</td></tr>
+<tr><td class="e">Phar API version </td><td class="v">1.1.1 </td></tr>
+<tr><td class="e">Phar-based phar archives </td><td class="v">enabled </td></tr>
+<tr><td class="e">Tar-based phar archives </td><td class="v">enabled </td></tr>
+<tr><td class="e">ZIP-based phar archives </td><td class="v">enabled </td></tr>
+<tr><td class="e">gzip compression </td><td class="v">enabled </td></tr>
+<tr><td class="e">bzip2 compression </td><td class="v">disabled (install ext/bz2) </td></tr>
+<tr><td class="e">Native OpenSSL support </td><td class="v">enabled </td></tr>
+</table>
+<table>
+<tr class="h"><td>Phar based on pear/PHP_Archive, original concept by Davey Shafik.</td></tr>
+<tr class="h"><td>Phar fully realized by Gregory Beaver and Marcus Boerger.</td></tr>
+<tr class="h"><td>Portions of tar implementation Copyright (c) 2003-2009 Tim Kientzle.</td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">phar.cache_list </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">phar.readonly </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">phar.require_hash </td><td class="v">On </td><td class="v">On </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_posix">posix</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>POSIX support</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_readline">readline</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Readline Support</th><td>enabled</td></tr>
+<tr><td class="e">Readline library </td><td class="v">EditLine wrapper </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">cli.pager </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">cli.prompt </td><td class="v">\b \&gt; </td><td class="v">\b \&gt; </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_session">session</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Session Support</th><td>enabled</td></tr>
+<tr><td class="e">Registered save handlers </td><td class="v">files user </td></tr>
+<tr><td class="e">Registered serializer handlers </td><td class="v">php_serialize php php_binary </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">session.auto_start </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">session.cache_expire </td><td class="v">180 </td><td class="v">180 </td></tr>
+<tr><td class="e">session.cache_limiter </td><td class="v">nocache </td><td class="v">nocache </td></tr>
+<tr><td class="e">session.cookie_domain </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.cookie_httponly </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.cookie_lifetime </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">session.cookie_path </td><td class="v">/ </td><td class="v">/ </td></tr>
+<tr><td class="e">session.cookie_samesite </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.cookie_secure </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">session.gc_divisor </td><td class="v">1000 </td><td class="v">1000 </td></tr>
+<tr><td class="e">session.gc_maxlifetime </td><td class="v">1440 </td><td class="v">1440 </td></tr>
+<tr><td class="e">session.gc_probability </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">session.lazy_write </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">session.name </td><td class="v">PHPSESSID </td><td class="v">PHPSESSID </td></tr>
+<tr><td class="e">session.referer_check </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.save_handler </td><td class="v">files </td><td class="v">files </td></tr>
+<tr><td class="e">session.save_path </td><td class="v">/var/lib/php/sessions </td><td class="v">/var/lib/php/sessions </td></tr>
+<tr><td class="e">session.serialize_handler </td><td class="v">php </td><td class="v">php </td></tr>
+<tr><td class="e">session.sid_bits_per_character </td><td class="v">5 </td><td class="v">5 </td></tr>
+<tr><td class="e">session.sid_length </td><td class="v">26 </td><td class="v">26 </td></tr>
+<tr><td class="e">session.upload_progress.cleanup </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">session.upload_progress.enabled </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">session.upload_progress.freq </td><td class="v">1% </td><td class="v">1% </td></tr>
+<tr><td class="e">session.upload_progress.min_freq </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">session.upload_progress.name </td><td class="v">PHP_SESSION_UPLOAD_PROGRESS </td><td class="v">PHP_SESSION_UPLOAD_PROGRESS </td></tr>
+<tr><td class="e">session.upload_progress.prefix </td><td class="v">upload_progress_ </td><td class="v">upload_progress_ </td></tr>
+<tr><td class="e">session.use_cookies </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">session.use_only_cookies </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">session.use_strict_mode </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">session.use_trans_sid </td><td class="v">0 </td><td class="v">0 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_SimpleXML">SimpleXML</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>SimpleXML support</th><td>enabled</td></tr>
+<tr><td class="e">Schema support </td><td class="v">enabled </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_sockets">sockets</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Sockets Support</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_sodium">sodium</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>sodium support</th><td>enabled</td></tr>
+<tr><td class="e">libsodium headers version </td><td class="v">1.0.18 </td></tr>
+<tr><td class="e">libsodium library version </td><td class="v">1.0.18 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_SPL">SPL</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>SPL support</th><td>enabled</td></tr>
+<tr><td class="e">Interfaces </td><td class="v">OuterIterator, RecursiveIterator, SeekableIterator, SplObserver, SplSubject </td></tr>
+<tr><td class="e">Classes </td><td class="v">AppendIterator, ArrayIterator, ArrayObject, BadFunctionCallException, BadMethodCallException, CachingIterator, CallbackFilterIterator, DomainException, EmptyIterator, FilesystemIterator, FilterIterator, GlobIterator, InfiniteIterator, InvalidArgumentException, IteratorIterator, LengthException, LimitIterator, LogicException, MultipleIterator, NoRewindIterator, OutOfBoundsException, OutOfRangeException, OverflowException, ParentIterator, RangeException, RecursiveArrayIterator, RecursiveCachingIterator, RecursiveCallbackFilterIterator, RecursiveDirectoryIterator, RecursiveFilterIterator, RecursiveIteratorIterator, RecursiveRegexIterator, RecursiveTreeIterator, RegexIterator, RuntimeException, SplDoublyLinkedList, SplFileInfo, SplFileObject, SplFixedArray, SplHeap, SplMinHeap, SplMaxHeap, SplObjectStorage, SplPriorityQueue, SplQueue, SplStack, SplTempFileObject, UnderflowException, UnexpectedValueException </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_standard">standard</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Dynamic Library Support</th><td>enabled</td></tr>
+<tr><td class="e">Path to sendmail </td><td class="v">/usr/sbin/sendmail -t -i </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">assert.active </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">assert.bail </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">assert.callback </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">assert.exception </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">assert.quiet_eval </td><td class="v">0 </td><td class="v">0 </td></tr>
+<tr><td class="e">assert.warning </td><td class="v">1 </td><td class="v">1 </td></tr>
+<tr><td class="e">auto_detect_line_endings </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">default_socket_timeout </td><td class="v">60 </td><td class="v">60 </td></tr>
+<tr><td class="e">from </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.trans_sid_hosts </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">session.trans_sid_tags </td><td class="v">a=href,area=href,frame=src,form= </td><td class="v">a=href,area=href,frame=src,form= </td></tr>
+<tr><td class="e">unserialize_max_depth </td><td class="v">4096 </td><td class="v">4096 </td></tr>
+<tr><td class="e">url_rewriter.hosts </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">url_rewriter.tags </td><td class="v">form= </td><td class="v">form= </td></tr>
+<tr><td class="e">user_agent </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_tokenizer">tokenizer</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Tokenizer Support</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_xml">xml</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>XML Support</th><td>active</td></tr>
+<tr><td class="e">XML Namespace Support </td><td class="v">active </td></tr>
+<tr><td class="e">libxml2 Version </td><td class="v">2.9.10 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_xmlreader">xmlreader</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>XMLReader</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_xmlwriter">xmlwriter</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>XMLWriter</th><td>enabled</td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_zip">zip</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Zip</th><td>enabled</td></tr>
+<tr><td class="e">Zip version </td><td class="v">1.15.6 </td></tr>
+<tr><td class="e">Libzip version </td><td class="v">1.7.3 </td></tr>
+<tr><td class="e">BZIP2 compression </td><td class="v">Yes </td></tr>
+<tr><td class="e">XZ compression </td><td class="v">Yes </td></tr>
+<tr><td class="e">ZSTD compression </td><td class="v">No </td></tr>
+<tr><td class="e">AES-128 encryption </td><td class="v">Yes </td></tr>
+<tr><td class="e">AES-192 encryption </td><td class="v">Yes </td></tr>
+<tr><td class="e">AES-256 encryption </td><td class="v">Yes </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_zlib">zlib</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>ZLib Support</th><td>enabled</td></tr>
+<tr><td class="e">Stream Wrapper </td><td class="v">compress.zlib:// </td></tr>
+<tr><td class="e">Stream Filter </td><td class="v">zlib.inflate, zlib.deflate </td></tr>
+<tr><td class="e">Compiled Version </td><td class="v">1.2.11 </td></tr>
+<tr><td class="e">Linked Version </td><td class="v">1.2.11 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">zlib.output_compression </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">zlib.output_compression_level </td><td class="v">-1 </td><td class="v">-1 </td></tr>
+<tr><td class="e">zlib.output_handler </td><td class="v"><i>no value</i> </td><td class="v"><i>no value</i> </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_Zend OPcache">Zend OPcache</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Opcode Caching</th><td>Up and Running</td></tr>
+<tr class="h"><th>Optimization</th><td>Enabled</td></tr>
+<tr class="h"><th>SHM Cache</th><td>Enabled</td></tr>
+<tr class="h"><th>File Cache</th><td>Disabled</td></tr>
+<tr class="h"><th>Startup</th><td>OK</td></tr>
+<tr><td class="e">Shared memory model </td><td class="v">mmap </td></tr>
+<tr><td class="e">Cache hits </td><td class="v">1432 </td></tr>
+<tr><td class="e">Cache misses </td><td class="v">87 </td></tr>
+<tr><td class="e">Used memory </td><td class="v">7340032 </td></tr>
+<tr><td class="e">Free memory </td><td class="v">126876288 </td></tr>
+<tr><td class="e">Wasted memory </td><td class="v">0 </td></tr>
+<tr><td class="e">Interned Strings Used memory </td><td class="v">532464 </td></tr>
+<tr><td class="e">Interned Strings Free memory </td><td class="v">6755088 </td></tr>
+<tr><td class="e">Cached scripts </td><td class="v">87 </td></tr>
+<tr><td class="e">Cached keys </td><td class="v">174 </td></tr>
+</table>
+<table>
+<tr class="h"><th>Directive</th><th>Local Value</th><th>Master Value</th></tr>
+<tr><td class="e">opcache.enable </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">opcache.enable_cli </td><td class="v">Off </td><td class="v">Off </td></tr>
+<tr><td class="e">opcache.memory_consumption </td><td class="v">128 </td><td class="v">128 </td></tr>
+<tr><td class="e">opcache.interned_strings_buffer </td><td class="v">8 </td><td class="v">8 </td></tr>
+<tr><td class="e">opcache.max_accelerated_files </td><td class="v">10000 </td><td class="v">10000 </td></tr>
+<tr><td class="e">opcache.max_wasted_percentage </td><td class="v">5 </td><td class="v">5 </td></tr>
+<tr><td class="e">opcache.validate_timestamps </td><td class="v">On </td><td class="v">On </td></tr>
+<tr><td class="e">opcache.revalidate_freq </td><td class="v">2 </td><td class="v">2 </td></tr>
+<tr><td class="e">opcache.jit </td><td class="v">disabled </td><td class="v">disabled </td></tr>
+<tr><td class="e">opcache.jit_buffer_size </td><td class="v">0 </td><td class="v">0 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_Additional Modules">Additional Modules</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Module Name</th></tr>
+<tr><td class="v">cgi-fcgi </td></tr>
+<tr><td class="v">libnsl </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_Environment">Environment</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Variable</th><th>Value</th></tr>
+<tr><td class="e">USER </td><td class="v">www-data </td></tr>
+<tr><td class="e">HOME </td><td class="v">/var/www </td></tr>
+<tr><td class="e">APACHE_RUN_DIR </td><td class="v">/var/run/apache2 </td></tr>
+<tr><td class="e">APACHE_PID_FILE </td><td class="v">/var/run/apache2/apache2.pid </td></tr>
+<tr><td class="e">APACHE_LOCK_DIR </td><td class="v">/var/lock/apache2 </td></tr>
+<tr><td class="e">LANG </td><td class="v">C </td></tr>
+<tr><td class="e">APACHE_RUN_USER </td><td class="v">www-data </td></tr>
+<tr><td class="e">APACHE_RUN_GROUP </td><td class="v">www-data </td></tr>
+<tr><td class="e">APACHE_LOG_DIR </td><td class="v">/var/log/apache2 </td></tr>
+<tr><td class="e">PATH </td><td class="v">/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin </td></tr>
+<tr><td class="e">PWD </td><td class="v">/ </td></tr>
+<tr><td class="e">INVOCATION_ID </td><td class="v">d2e7a1c4f8b3490ba7d1e6c9f0a25b3e </td></tr>
+<tr><td class="e">JOURNAL_STREAM </td><td class="v">8:27341 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_PHP Variables">PHP Variables</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>Variable</th><th>Value</th></tr>
+<tr><td class="e">$_SERVER['HTTP_HOST'] </td><td class="v">localhost </td></tr>
+<tr><td class="e">$_SERVER['HTTP_USER_AGENT'] </td><td class="v">Mozilla/5.0 </td></tr>
+<tr><td class="e">$_SERVER['HTTP_ACCEPT'] </td><td class="v">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 </td></tr>
+<tr><td class="e">$_SERVER['HTTP_CONNECTION'] </td><td class="v">keep-alive </td></tr>
+<tr><td class="e">$_SERVER['PATH'] </td><td class="v">/usr/local/bin:/usr/bin:/bin </td></tr>
+<tr><td class="e">$_SERVER['SERVER_SIGNATURE'] </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">$_SERVER['SERVER_SOFTWARE'] </td><td class="v">Apache/2.4.57 (Debian) </td></tr>
+<tr><td class="e">$_SERVER['SERVER_NAME'] </td><td class="v">localhost </td></tr>
+<tr><td class="e">$_SERVER['SERVER_ADDR'] </td><td class="v">127.0.0.1 </td></tr>
+<tr><td class="e">$_SERVER['SERVER_PORT'] </td><td class="v">80 </td></tr>
+<tr><td class="e">$_SERVER['REMOTE_ADDR'] </td><td class="v">127.0.0.1 </td></tr>
+<tr><td class="e">$_SERVER['DOCUMENT_ROOT'] </td><td class="v">/var/www/html </td></tr>
+<tr><td class="e">$_SERVER['REQUEST_SCHEME'] </td><td class="v">http </td></tr>
+<tr><td class="e">$_SERVER['CONTEXT_PREFIX'] </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">$_SERVER['CONTEXT_DOCUMENT_ROOT'] </td><td class="v">/var/www/html </td></tr>
+<tr><td class="e">$_SERVER['SERVER_ADMIN'] </td><td class="v">webmaster@localhost </td></tr>
+<tr><td class="e">$_SERVER['SCRIPT_FILENAME'] </td><td class="v">/var/www/html/info.php </td></tr>
+<tr><td class="e">$_SERVER['REMOTE_PORT'] </td><td class="v">54123 </td></tr>
+<tr><td class="e">$_SERVER['GATEWAY_INTERFACE'] </td><td class="v">CGI/1.1 </td></tr>
+<tr><td class="e">$_SERVER['SERVER_PROTOCOL'] </td><td class="v">HTTP/1.1 </td></tr>
+<tr><td class="e">$_SERVER['REQUEST_METHOD'] </td><td class="v">GET </td></tr>
+<tr><td class="e">$_SERVER['QUERY_STRING'] </td><td class="v"><i>no value</i> </td></tr>
+<tr><td class="e">$_SERVER['REQUEST_URI'] </td><td class="v">/info.php </td></tr>
+<tr><td class="e">$_SERVER['SCRIPT_NAME'] </td><td class="v">/info.php </td></tr>
+<tr><td class="e">$_SERVER['PHP_SELF'] </td><td class="v">/info.php </td></tr>
+<tr><td class="e">$_SERVER['REQUEST_TIME_FLOAT'] </td><td class="v">1686556800.0123 </td></tr>
+<tr><td class="e">$_SERVER['REQUEST_TIME'] </td><td class="v">1686556800 </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_php_credits">PHP Credits</a></h1>
+<div class="center">
+<table>
+<tr class="h"><th>PHP Group</th></tr>
+<tr><td class="v">Thies C. Arntzen, Stig Bakken, Shane Caraveo, Andi Gutmans, Rasmus Lerdorf, Sam Ruby, Sascha Schumann, Zeev Suraski, Jim Winstead, Andrei Zmievski </td></tr>
+</table>
+</div>
+<hr />
+<h1><a name="module_license">PHP License</a></h1>
+<div class="center">
+<table>
+<tr class="h"><td>
+<p>
+This program is free software; you can redistribute it and/or modify
+it under the terms of the PHP License as published by the PHP Group
+and included in the distribution in the file:  LICENSE
+</p>
+<p>
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+</p>
+<p>
+If you did not receive a copy of the PHP license, or have any
+questions about PHP licensing, please contact license@php.net.
+</p>
+</td></tr>
+</table>
+</div>
 </body></html>
