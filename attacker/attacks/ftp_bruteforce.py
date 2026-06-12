@@ -114,7 +114,7 @@ def run(
     target = f"ftp://{config.target_host}:{config.target_port}"
     report = FtpBruteforceReport(target=target)
 
-    results = make_results_dir(reports_dir, prefix="ftp")
+    results = make_results_dir(reports_dir, prefix=f"ftp-{config.target_port}")
     logger.info("Artefacts directory: %s", results.path)
 
     rich = report_mod.Report(

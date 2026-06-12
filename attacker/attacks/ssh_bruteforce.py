@@ -59,7 +59,7 @@ def run(
     target = f"ssh://{config.target_host}:{config.target_port}"
     report = SshBruteforceReport(target=target)
 
-    results = make_results_dir(reports_dir, prefix="ssh")
+    results = make_results_dir(reports_dir, prefix=f"ssh-{config.target_port}")
     logger.info("Artefacts directory: %s", results.path)
 
     rich = report_mod.Report(

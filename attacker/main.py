@@ -623,9 +623,13 @@ def _collect_protocol_signals(consolidated: Path) -> list[honeypot.ProtocolSigna
         hp = data.get("honeypot")
         if not hp:
             continue
+
+        proto = str(data.get("protocol") or path.parent.name)
+        port = data.get("port")
+        label = f"{proto}:{port}" if port else proto
         collected.append(
             honeypot.ProtocolSignal(
-                protocol=str(data.get("protocol") or path.parent.name),
+                protocol=label,
                 score=int(hp.get("score", 0)),
                 suspected=bool(hp.get("suspected", False)),
                 signals=tuple(
