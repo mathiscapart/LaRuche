@@ -1,5 +1,8 @@
 {
-  "branches": ["main", "prod"],
+  "branches": [
+    "main",
+    "prod"
+  ],
   "plugins": [
     ["@semantic-release/commit-analyzer", {
       "preset": "conventionalcommits"

@@ -173,8 +173,14 @@ jobs:
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/exec
 
+      - name: Debug environment
+        run: |
+          echo "Current branch: ${GITHUB_REF#refs/heads/}"
+          echo "Repository: $GITHUB_REPOSITORY"
+          cat .releaserc
+
       - name: Run semantic-release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
+        run: npx semantic-release --dry-run
