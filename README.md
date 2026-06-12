@@ -111,7 +111,7 @@ docker compose run --rm attacker check --for all
 
 By default the SSH/FTP brute-force tries the service's default credentials
 first; add `--full-wordlist` to go straight to the large wordlist. See
-[`docs/README.md`](docs/README.md) for all options.
+[`docs/ATTACKER.md`](docs/ATTACKER.md) for all options.
 
 
 ### Analyzer
