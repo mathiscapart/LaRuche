@@ -2,39 +2,472 @@
 <html lang="en-US">
 <head>
 	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="referrer" content="strict-origin-when-cross-origin" />
 	<title>Dashboard &lsaquo; My Blog &#8212; WordPress</title>
-	<link rel="stylesheet" href="/wp-admin/css/dashboard.min.css" media="all" />
+	<meta name="robots" content="noindex, follow" />
+	<link rel="stylesheet" id="dashicons-css" href="/wp-includes/css/dashicons.min.css" media="all" />
+	<link rel="stylesheet" id="admin-bar-css" href="/wp-includes/css/admin-bar.min.css" media="all" />
+	<link rel="stylesheet" id="common-css" href="/wp-admin/css/common.min.css" media="all" />
+	<link rel="stylesheet" id="wp-admin-css" href="/wp-admin/css/wp-admin.min.css" media="all" />
+	<link rel="stylesheet" id="dashboard-css" href="/wp-admin/css/dashboard.min.css" media="all" />
+	<style>
+	html { background: #f0f0f1; }
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; padding: 0; min-width: 600px;
+		color: #3c434a; background: #f0f0f1;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+		font-size: 13px; line-height: 1.4em; -webkit-font-smoothing: antialiased;
+	}
+	a { color: #2271b1; transition-property: border, background, color; transition-duration: .05s; transition-timing-function: ease-in-out; }
+	a, a:active, a:hover, a:focus { color: #2271b1; }
+	a:hover, a:active { color: #135e96; }
+	h1, h2, h3 { font-weight: 600; }
+	.clear::after { content: ""; display: table; clear: both; }
+
+	/* Admin bar */
+	#wpadminbar {
+		position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+		height: 32px; min-width: 600px;
+		background: #1d2327; color: #c3c4c7;
+		font-size: 13px; font-weight: 400; line-height: 2.46153846;
+	}
+	#wpadminbar * { height: auto; color: #c3c4c7; font-size: 13px; }
+	#wpadminbar .ab-item, #wpadminbar a.ab-item { color: #c3c4c7; text-decoration: none; }
+	#wpadminbar ul { margin: 0; padding: 0; list-style: none; }
+	#wpadminbar > #wp-toolbar > ul > li { float: left; }
+	#wpadminbar > #wp-toolbar > ul.ab-top-secondary { float: right; }
+	#wpadminbar .ab-item { display: block; padding: 0 8px; height: 32px; line-height: 32px; }
+	#wpadminbar li:hover > .ab-item { background: #2c3338; color: #72aee6; }
+	#wp-admin-bar-wp-logo .ab-item { padding: 0 7px 0 9px; }
+	#wp-admin-bar-wp-logo .ab-icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
+	#wp-admin-bar-wp-logo .ab-icon svg { width: 20px; height: 20px; fill: #a7aaad; vertical-align: middle; }
+	#wp-admin-bar-site-name .ab-icon::before { content: "\\2302"; margin-right: 6px; font-size: 16px; vertical-align: middle; }
+	#wp-admin-bar-comments .ab-icon::before { content: "\\1F4AC"; margin-right: 2px; }
+	#wp-admin-bar-new-content .ab-icon::before { content: "\\002B"; font-weight: 700; margin-right: 2px; }
+	#wp-admin-bar-my-account { text-align: right; }
+	#wp-admin-bar-my-account .avatar {
+		display: inline-block; width: 26px; height: 26px; margin-left: 6px;
+		border-radius: 50%; background: #2271b1; vertical-align: middle;
+		text-align: center; line-height: 26px; color: #fff; font-weight: 600;
+	}
+
+	/* Wrap & menu */
+	#wpwrap { height: auto; min-height: 100%; width: 100%; position: relative; }
+	#adminmenuback, #adminmenuwrap {
+		position: absolute; top: 0; bottom: 0; z-index: 9990;
+		width: 160px; margin-top: 32px;
+	}
+	#adminmenuback { background: #1d2327; }
+	#adminmenuwrap { background: #1d2327; }
+	#adminmenu {
+		width: 160px; margin: 0; padding: 0; list-style: none;
+		clear: left; background: #1d2327;
+	}
+	#adminmenu li { margin: 0; padding: 0; }
+	#adminmenu li.menu-top {
+		border: none; min-height: 34px; position: relative;
+	}
+	#adminmenu a {
+		display: block; line-height: 1.3; padding: 2px 5px;
+		color: #f0f0f1; text-decoration: none;
+	}
+	#adminmenu .wp-menu-name { padding: 7px 0 7px 36px; font-size: 14px; }
+	#adminmenu li.menu-top:hover, #adminmenu li.menu-top.current, #adminmenu li.menu-top.wp-has-current-submenu {
+		background: #2271b1;
+	}
+	#adminmenu li.menu-top:hover > a, #adminmenu li.current > a, #adminmenu li.wp-has-current-submenu > a {
+		color: #fff;
+	}
+	#adminmenu li.menu-top:hover .wp-menu-image::before, #adminmenu li.current .wp-menu-image::before { color: #fff; }
+	#adminmenu div.wp-menu-image {
+		position: absolute; left: 0; top: 0; width: 36px; height: 34px;
+		text-align: center;
+	}
+	#adminmenu div.wp-menu-image::before {
+		display: inline-block; font-family: dashicons, sans-serif; font-style: normal;
+		line-height: 34px; font-size: 20px; color: #a7aaad;
+	}
+	#menu-dashboard div.wp-menu-image::before { content: "\\2302"; }
+	#menu-posts div.wp-menu-image::before { content: "\\1F4CC"; }
+	#menu-media div.wp-menu-image::before { content: "\\1F3B5"; }
+	#menu-pages div.wp-menu-image::before { content: "\\1F4C4"; }
+	#menu-comments div.wp-menu-image::before { content: "\\1F4AC"; }
+	#menu-appearance div.wp-menu-image::before { content: "\\1F58C"; }
+	#menu-plugins div.wp-menu-image::before { content: "\\1F50C"; }
+	#menu-users div.wp-menu-image::before { content: "\\1F465"; }
+	#menu-tools div.wp-menu-image::before { content: "\\1F527"; }
+	#menu-settings div.wp-menu-image::before { content: "\\2699"; }
+	.wp-menu-separator { height: 5px; padding: 0; margin: 0 0 0 0; cursor: inherit; background: #1d2327; }
+	.wp-menu-separator div { height: 5px; border-top: 1px solid rgba(255,255,255,.1); }
+	#collapse-menu { display: block; padding: 8px 0; color: #a7aaad; font-size: 13px; }
+	#collapse-menu .wp-menu-name { padding-left: 36px; }
+
+	/* Body content */
+	#wpcontent { position: relative; margin-left: 160px; padding-left: 20px; }
+	#wpbody { position: relative; }
+	#wpbody-content { padding-bottom: 65px; float: left; width: 100%; }
+	.wrap { margin: 10px 20px 0 2px; position: relative; }
+	#wpcontent, #wpfooter { margin-left: 160px; }
+	#wpbody { padding-top: 32px; }
+	.wrap h1.wp-heading-inline { display: inline-block; margin-right: 5px; }
+	.wrap h1 { font-size: 23px; font-weight: 400; margin: 0; padding: 9px 0 4px; line-height: 1.3; color: #1d2327; }
+
+	/* Welcome panel */
+	.welcome-panel {
+		position: relative; overflow: auto; margin: 16px 0; padding: 23px 10px 0;
+		border: 1px solid #c3c4c7; box-shadow: 0 1px 1px rgba(0,0,0,.04);
+		background: #fff; font-size: 13px; line-height: 1.4;
+	}
+	.welcome-panel h2 { margin: 0; font-size: 21px; font-weight: 400; line-height: 1.2; }
+	.welcome-panel .about-description { font-size: 16px; margin: 0 0 1em; color: #50575e; }
+	.welcome-panel-close {
+		position: absolute; top: 10px; right: 10px; padding: 10px 15px 10px 21px;
+		font-size: 13px; line-height: 1.2; text-decoration: none; color: #787c82;
+	}
+	.welcome-panel-close::before { content: "\\00D7"; position: absolute; left: 0; top: 8px; font-size: 20px; }
+	.welcome-panel-column-container { clear: both; position: relative; }
+	.welcome-panel-column {
+		display: inline-block; vertical-align: top; min-width: 200px;
+		max-width: 32%; margin: 0 5% 1.5em 0; padding: 0;
+	}
+	.welcome-panel-column:last-child { margin-right: 0; }
+	.welcome-panel-column h3 { margin: 1.33em 0 0; font-size: 16px; }
+	.welcome-panel-column ul { margin: 1.6em 0; list-style: none; padding: 0; }
+	.welcome-panel-column li { margin: 0; line-height: 2.1; }
+	.welcome-panel .button.button-hero {
+		display: inline-block; padding: 8px 14px; font-size: 16px; line-height: 1.4;
+		background: #2271b1; border: 1px solid #2271b1; color: #fff; border-radius: 3px;
+		text-decoration: none; box-shadow: none; cursor: pointer;
+	}
+	.welcome-panel .button.button-hero:hover { background: #135e96; border-color: #135e96; }
+	.welcome-panel-column .dashicons-before::before { margin-right: 6px; color: #2271b1; }
+
+	/* Dashboard widgets / postboxes */
+	#dashboard-widgets-wrap { clear: both; margin: 0 -8px; padding-top: 12px; }
+	#dashboard-widgets .postbox-container { float: left; width: 49.5%; }
+	#dashboard-widgets #postbox-container-1, #dashboard-widgets #postbox-container-2 { width: 49.5%; }
+	.meta-box-sortables { min-height: 1px; margin: 0 8px; }
+	.postbox {
+		position: relative; min-width: 255px; margin-bottom: 20px;
+		background: #fff; border: 1px solid #c3c4c7; box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	}
+	.postbox > .postbox-header { display: block; border-bottom: 1px solid #c3c4c7; }
+	.postbox .hndle, .postbox h2.hndle {
+		margin: 0; padding: 8px 12px; font-size: 14px; line-height: 1.4; font-weight: 600;
+		color: #1d2327; cursor: default;
+	}
+	.postbox .inside { margin: 11px 12px; padding: 0; font-size: 13px; line-height: 1.4; position: relative; }
+	.postbox .inside p { margin: 1em 0; }
+
+	/* At a Glance */
+	#dashboard_right_now p.sub { margin: 0; padding: 0 0 5px; color: #646970; }
+	#dashboard_right_now .main { padding: 0; }
+	#dashboard_right_now ul { margin: 0; overflow: hidden; padding: 0; list-style: none; }
+	#dashboard_right_now li { margin-right: 16px; padding: 0; line-height: 2; float: left; }
+	#dashboard_right_now li a, #dashboard_right_now li span { display: block; text-indent: 25px; position: relative; }
+	#dashboard_right_now li a::before, #dashboard_right_now li span::before {
+		position: absolute; left: 0; top: 0; font-family: dashicons, sans-serif; font-size: 20px;
+		color: #82878c;
+	}
+	#dashboard_right_now .post-count a::before { content: "\\1F4CC"; }
+	#dashboard_right_now .page-count a::before { content: "\\1F4C4"; }
+	#dashboard_right_now .comment-count a::before { content: "\\1F4AC"; }
+	#dashboard_right_now .versions { padding: 10px 0 0; }
+	#dashboard_right_now .versions p { margin: 0; padding: 8px 0 0; color: #646970; }
+	#dashboard_right_now .button { font-size: 13px; }
+
+	/* Activity */
+	#dashboard_activity .subsubsub { float: none; margin: 0 0 8px; padding: 0; }
+	#dashboard_activity .activity-block { padding: 8px 0; border-bottom: 1px solid #f0f0f1; }
+	#dashboard_activity .activity-block:last-child { border-bottom: none; }
+	#dashboard_activity h3 { margin: 0 0 8px; font-size: 14px; }
+	#dashboard_activity ul { margin: 0; padding: 0; list-style: none; }
+	#dashboard_activity li { padding: 3px 0; color: #50575e; }
+	#dashboard_activity .comment-meta { color: #646970; }
+
+	/* Quick Draft */
+	#dashboard_quick_press .inside { margin: 0; padding: 0; }
+	.dashboard-widget-control-form, #dashboard_quick_press .input-text-wrap, #dashboard_quick_press .textarea-wrap { padding: 0 12px; }
+	#dashboard_quick_press label { display: block; margin: 12px 0 4px; font-weight: 600; }
+	#dashboard_quick_press input#title, #dashboard_quick_press textarea#content {
+		width: 100%; max-width: 100%; padding: 6px 8px; margin: 0; font-size: 14px;
+		border: 1px solid #8c8f94; border-radius: 4px; background: #fff; color: #2c3338;
+	}
+	#dashboard_quick_press textarea#content { min-height: 90px; resize: vertical; }
+	#dashboard_quick_press .submit { padding: 12px; margin: 0; border-top: 1px solid #f0f0f1; overflow: hidden; }
+	.button, .button-secondary {
+		display: inline-block; text-decoration: none; font-size: 13px; line-height: 2.15384615;
+		min-height: 30px; margin: 0; padding: 0 10px; cursor: pointer; border-width: 1px;
+		border-style: solid; border-radius: 3px; white-space: nowrap; box-sizing: border-box;
+		color: #2271b1; border-color: #2271b1; background: #f6f7f7; vertical-align: top;
+	}
+	.button:hover, .button-secondary:hover { background: #f0f0f1; border-color: #0a4b78; color: #0a4b78; }
+	.button-primary {
+		color: #fff; border-color: #2271b1; background: #2271b1; box-shadow: none;
+		text-shadow: none; display: inline-block; padding: 0 12px; min-height: 30px;
+		line-height: 2.15384615; font-size: 13px; border-radius: 3px; border-width: 1px;
+		border-style: solid; cursor: pointer; vertical-align: top;
+	}
+	.button-primary:hover { background: #135e96; border-color: #135e96; color: #fff; }
+
+	/* Footer */
+	#wpfooter { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 20px; color: #646970; }
+	#wpfooter p { margin: 0; padding: 1em 0; font-size: 13px; line-height: 1.55; }
+	#footer-left a { text-decoration: none; }
+	#footer-thankyou { font-style: italic; }
+	#footer-upgrade { float: right; margin: 0; }
+
+	/* Screen reader text */
+	.screen-reader-text { border: 0; clip: rect(1px,1px,1px,1px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; word-wrap: normal !important; }
+	</style>
 </head>
-<body class="wp-admin wp-core-ui dashboard">
+<body class="wp-admin wp-core-ui no-js index-php auto-fold admin-bar branch-6-5 version-6-5-2 admin-color-fresh locale-en-us">
+
 <div id="wpwrap">
-	<div id="adminmenu">
-		<ul>
-			<li><a href="/wp-admin/">Dashboard</a></li>
-			<li><a href="/wp-admin/edit.php">Posts</a></li>
-			<li><a href="/wp-admin/upload.php">Media</a></li>
-			<li><a href="/wp-admin/plugins.php">Plugins</a></li>
-			<li><a href="/wp-admin/users.php">Users</a></li>
-			<li><a href="/wp-admin/options-general.php">Settings</a></li>
-		</ul>
+
+	<div id="wpadminbar" class="nojq nojs">
+		<div class="quicklinks" id="wp-toolbar" role="navigation" aria-label="Toolbar">
+			<ul id="wp-admin-bar-root-default" class="ab-top-menu">
+				<li id="wp-admin-bar-wp-logo">
+					<a class="ab-item" href="/wp-admin/about.php" aria-label="About WordPress">
+						<span class="ab-icon" aria-hidden="true"><svg viewBox="0 0 122.52 122.523" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M8.708 61.26c0 20.802 12.089 38.779 29.619 47.298L13.258 39.872a52.354 52.354 0 0 0-4.55 21.388zm88.032-2.652c0-6.495-2.333-10.993-4.334-14.494-2.664-4.329-5.161-7.995-5.161-12.324 0-4.831 3.665-9.328 8.825-9.328.233 0 .454.029.681.042-9.349-8.566-21.807-13.796-35.489-13.796-18.36 0-34.513 9.42-43.91 23.688 1.233.037 2.395.063 3.382.063 5.497 0 14.006-.667 14.006-.667 2.833-.166 3.167 3.994.337 4.329 0 0-2.847.335-6.015.501l19.138 56.925L60.69 49.554l-8.188-22.434c-2.83-.166-5.511-.501-5.511-.501-2.831-.166-2.5-4.495.332-4.329 0 0 8.679.667 13.843.667 5.496 0 14.006-.667 14.006-.667 2.835-.166 3.168 3.994.337 4.329 0 0-2.852.335-6.015.501l18.992 56.494 5.242-17.518c2.272-7.269 4.001-12.49 4.001-16.989zM62.184 65.857l-15.768 45.819a52.552 52.552 0 0 0 14.846 2.141c6.12 0 11.989-1.058 17.452-2.979a4.615 4.615 0 0 1-.374-.724L62.184 65.857zm45.192-29.81c.226 1.674.354 3.471.354 5.404 0 5.333-.996 11.328-3.996 18.824L87.68 106.689c15.624-9.111 26.133-26.038 26.133-45.426 0-9.137-2.333-17.729-6.437-25.215zM61.262 0C27.483 0 0 27.481 0 61.26c0 33.783 27.483 61.263 61.262 61.263 33.778 0 61.265-27.48 61.265-61.263C122.526 27.481 95.04 0 61.262 0zm0 119.715c-32.23 0-58.453-26.223-58.453-58.455 0-32.23 26.222-58.451 58.453-58.451 32.229 0 58.45 26.221 58.45 58.451 0 32.232-26.221 58.455-58.45 58.455z"/></svg></span>
+					</a>
+				</li>
+				<li id="wp-admin-bar-site-name">
+					<a class="ab-item" href="/"><span class="ab-icon" aria-hidden="true"></span>My Blog</a>
+				</li>
+				<li id="wp-admin-bar-comments">
+					<a class="ab-item" href="/wp-admin/edit-comments.php"><span class="ab-icon" aria-hidden="true"></span><span class="ab-label awaiting-mod count-0" aria-hidden="true">0</span></a>
+				</li>
+				<li id="wp-admin-bar-new-content">
+					<a class="ab-item" href="/wp-admin/post-new.php"><span class="ab-icon" aria-hidden="true"></span><span class="ab-label">New</span></a>
+				</li>
+			</ul>
+			<ul id="wp-admin-bar-top-secondary" class="ab-top-secondary ab-top-menu">
+				<li id="wp-admin-bar-my-account" class="with-avatar">
+					<a class="ab-item" href="/wp-admin/profile.php">Howdy, <span class="display-name">admin</span><span class="avatar" aria-hidden="true">A</span></a>
+				</li>
+			</ul>
+		</div>
 	</div>
-	<div id="wpbody">
-		<h1>Dashboard</h1>
-		<div id="dashboard-widgets">
-			<div class="welcome-panel">
-				<h2>Welcome to WordPress!</h2>
-				<p>We&#8217;ve assembled some links to get you started.</p>
-			</div>
-			<div id="dashboard_right_now">
-				<h2>At a Glance</h2>
-				<ul>
-					<li>1 Post</li>
-					<li>1 Page</li>
-					<li>1 Comment</li>
-				</ul>
-				<p>WordPress 6.5.2 running Twenty Twenty-Four theme.</p>
+
+	<ul id="adminmenuback"></ul>
+	<div id="adminmenuwrap">
+		<ul id="adminmenu">
+			<li class="wp-has-current-submenu wp-menu-open menu-top menu-top-first menu-icon-dashboard current" id="menu-dashboard">
+				<a href="/wp-admin/index.php" class="wp-has-current-submenu wp-has-submenu wp-not-current-submenu menu-top menu-icon-dashboard menu-top-first" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-dashboard" aria-hidden="true"></div>
+					<div class="wp-menu-name">Dashboard</div>
+				</a>
+			</li>
+			<li class="wp-menu-separator"><div class="separator"></div></li>
+			<li class="menu-top menu-icon-post" id="menu-posts">
+				<a href="/wp-admin/edit.php" class="menu-top menu-icon-post" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-post" aria-hidden="true"></div>
+					<div class="wp-menu-name">Posts</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-media" id="menu-media">
+				<a href="/wp-admin/upload.php" class="menu-top menu-icon-media" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-media" aria-hidden="true"></div>
+					<div class="wp-menu-name">Media</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-page" id="menu-pages">
+				<a href="/wp-admin/edit.php?post_type=page" class="menu-top menu-icon-page" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-page" aria-hidden="true"></div>
+					<div class="wp-menu-name">Pages</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-comments" id="menu-comments">
+				<a href="/wp-admin/edit-comments.php" class="menu-top menu-icon-comments" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-comments" aria-hidden="true"></div>
+					<div class="wp-menu-name">Comments <span class="awaiting-mod count-0"><span class="pending-count" aria-hidden="true">0</span></span></div>
+				</a>
+			</li>
+			<li class="wp-menu-separator"><div class="separator"></div></li>
+			<li class="menu-top menu-icon-appearance" id="menu-appearance">
+				<a href="/wp-admin/themes.php" class="menu-top menu-icon-appearance" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-appearance" aria-hidden="true"></div>
+					<div class="wp-menu-name">Appearance</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-plugins" id="menu-plugins">
+				<a href="/wp-admin/plugins.php" class="menu-top menu-icon-plugins" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-plugins" aria-hidden="true"></div>
+					<div class="wp-menu-name">Plugins</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-users" id="menu-users">
+				<a href="/wp-admin/users.php" class="menu-top menu-icon-users" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-users" aria-hidden="true"></div>
+					<div class="wp-menu-name">Users</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-tools" id="menu-tools">
+				<a href="/wp-admin/tools.php" class="menu-top menu-icon-tools" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-tools" aria-hidden="true"></div>
+					<div class="wp-menu-name">Tools</div>
+				</a>
+			</li>
+			<li class="menu-top menu-icon-settings" id="menu-settings">
+				<a href="/wp-admin/options-general.php" class="menu-top menu-icon-settings" aria-haspopup="true">
+					<div class="wp-menu-image dashicons-before dashicons-admin-settings" aria-hidden="true"></div>
+					<div class="wp-menu-name">Settings</div>
+				</a>
+			</li>
+			<li class="wp-menu-separator"><div class="separator"></div></li>
+		</ul>
+		<div id="collapse-menu" class="hide-if-no-js">
+			<span class="collapse-button-icon" aria-hidden="true">&laquo;</span>
+			<span class="collapse-button-label">Collapse menu</span>
+		</div>
+	</div>
+
+	<div id="wpcontent">
+		<div id="wpbody" role="main">
+			<div id="wpbody-content">
+				<div class="wrap">
+					<h1>Dashboard</h1>
+
+					<div class="welcome-panel" id="welcome-panel">
+						<a class="welcome-panel-close" href="/wp-admin/index.php?welcome=0" aria-label="Dismiss the welcome panel">Dismiss</a>
+						<div class="welcome-panel-content">
+							<div class="welcome-panel-header">
+								<h2>Welcome to WordPress!</h2>
+								<p class="about-description">We&#8217;ve assembled some links to get you started:</p>
+							</div>
+							<div class="welcome-panel-column-container">
+								<div class="welcome-panel-column">
+									<h3>Get Started</h3>
+									<a class="button button-primary button-hero" href="/wp-admin/customize.php">Customize Your Site</a>
+									<p class="hide-if-no-customize">or, <a href="/wp-admin/themes.php">change your theme completely</a>.</p>
+								</div>
+								<div class="welcome-panel-column">
+									<h3>Next Steps</h3>
+									<ul>
+										<li><a href="/wp-admin/post-new.php?post_type=page" class="welcome-icon dashicons-before dashicons-welcome-add-page">Write your first blog post</a></li>
+										<li><a href="/wp-admin/post-new.php?post_type=page" class="welcome-icon dashicons-before dashicons-welcome-add-page">Add an About page</a></li>
+										<li><a href="/wp-admin/options-reading.php" class="welcome-icon dashicons-before dashicons-admin-home">Set up your homepage</a></li>
+										<li><a href="/" class="welcome-icon dashicons-before dashicons-welcome-view-site">View your site</a></li>
+									</ul>
+								</div>
+								<div class="welcome-panel-column welcome-panel-last">
+									<h3>More Actions</h3>
+									<ul>
+										<li><a href="/wp-admin/widgets.php" class="welcome-icon dashicons-before dashicons-welcome-widgets-menus">Manage widgets</a></li>
+										<li><a href="/wp-admin/nav-menus.php" class="welcome-icon dashicons-before dashicons-admin-comments">Manage menus</a></li>
+										<li><a href="/wp-admin/options-discussion.php" class="welcome-icon dashicons-before dashicons-admin-comments">Turn comments on or off</a></li>
+										<li><a href="https://learn.wordpress.org/" class="welcome-icon dashicons-before dashicons-learn-more">Learn more about getting started</a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div id="dashboard-widgets-wrap">
+						<div id="dashboard-widgets" class="metabox-holder columns-2">
+
+							<div id="postbox-container-1" class="postbox-container">
+								<div id="normal-sortables" class="meta-box-sortables ui-sortable">
+
+									<div id="dashboard_right_now" class="postbox">
+										<div class="postbox-header"><h2 class="hndle">At a Glance</h2></div>
+										<div class="inside">
+											<div class="main">
+												<ul>
+													<li class="post-count"><a href="/wp-admin/edit.php">1 Post</a></li>
+													<li class="page-count"><a href="/wp-admin/edit.php?post_type=page">1 Page</a></li>
+													<li class="comment-count"><a href="/wp-admin/edit-comments.php">1 Comment</a></li>
+												</ul>
+												<p class="versions">
+													<span id="wp-version-message">WordPress 6.5.2 running <a href="/wp-admin/themes.php">Twenty Twenty-Four</a> theme.</span>
+												</p>
+											</div>
+										</div>
+									</div>
+
+									<div id="dashboard_activity" class="postbox">
+										<div class="postbox-header"><h2 class="hndle">Activity</h2></div>
+										<div class="inside">
+											<div id="activity-widget">
+												<div id="published-posts" class="activity-block">
+													<h3>Recently Published</h3>
+													<ul>
+														<li><span>Jun 12th, 4:13 pm</span> <a href="/wp-admin/post.php?post=1&amp;action=edit" aria-label="Edit &#8220;Hello world!&#8221;">Hello world!</a></li>
+													</ul>
+												</div>
+												<div id="latest-comments" class="activity-block">
+													<h3>Recent Comments</h3>
+													<ul id="the-comment-list">
+														<li class="comment even thread-even depth-1 approved">
+															<p class="comment-meta">From <cite class="comment-author">A WordPress Commenter</cite> on <a href="/?p=1#comments">Hello world!</a></p>
+															<blockquote><p>Hi, this is a comment. To get started with moderating, editing, and deleting comments, please visit the Comments screen in&hellip;</p></blockquote>
+														</li>
+													</ul>
+												</div>
+											</div>
+										</div>
+									</div>
+
+								</div>
+							</div>
+
+							<div id="postbox-container-2" class="postbox-container">
+								<div id="side-sortables" class="meta-box-sortables ui-sortable">
+
+									<div id="dashboard_quick_press" class="postbox">
+										<div class="postbox-header"><h2 class="hndle">Quick Draft</h2></div>
+										<div class="inside">
+											<form name="post" action="/wp-admin/post.php" method="post" id="quick-press" class="initial-form hide-if-no-js">
+												<div class="input-text-wrap" id="title-wrap">
+													<label for="title">Title</label>
+													<input type="text" name="post_title" id="title" autocomplete="off" value="" />
+												</div>
+												<div class="textarea-wrap" id="description-wrap">
+													<label for="content">Content</label>
+													<textarea name="content" id="content" placeholder="What&#8217;s on your mind?" rows="3"></textarea>
+												</div>
+												<p class="submit">
+													<input type="hidden" name="action" id="quickpost-action" value="post-quickdraft-save" />
+													<input type="hidden" name="post_ID" value="0" />
+													<input type="hidden" name="post_type" value="post" />
+													<input type="submit" name="save" id="save-post" class="button button-primary" value="Save Draft" />
+												</p>
+											</form>
+										</div>
+									</div>
+
+									<div id="dashboard_primary" class="postbox">
+										<div class="postbox-header"><h2 class="hndle">WordPress Events and News</h2></div>
+										<div class="inside">
+											<p class="community-events-footer">Attend an upcoming event near you.</p>
+										</div>
+									</div>
+
+								</div>
+							</div>
+
+						</div>
+					</div>
+
+					<div class="clear"></div>
+				</div>
 			</div>
 		</div>
 	</div>
+
+	<div id="wpfooter" role="contentinfo">
+		<p id="footer-left">
+			<span id="footer-thankyou">Thank you for creating with <a href="https://wordpress.org/">WordPress</a>.</span>
+		</p>
+		<p id="footer-upgrade" class="alignright">Version 6.5.2</p>
+		<div class="clear"></div>
+	</div>
+
 </div>
+
 </body>
 </html>
