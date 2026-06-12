@@ -179,8 +179,14 @@ async def wp_json(request: Request) -> JSONResponse:
             "home": base,
             "gmt_offset": 0,
             "timezone_string": "",
-            "namespaces": ["oembed/1.0", "wp/v2"],
+            "namespaces": ["oembed/1.0", "wp/v2", "wp-site-health/v1", "wp-block-editor/v1"],
             "authentication": {},
+            "site_icon_url": "",
+            "site_logo": 0,
+            "_links": {
+                "help": [{"href": "https://developer.wordpress.org/rest-api/"}],
+                "wp:featuredmedia": [{"embeddable": True, "href": f"{base}/wp-json/wp/v2/media"}],
+            },
         }
     )
 
@@ -205,6 +211,103 @@ async def wp_user(user_id: int) -> JSONResponse:
 @router.get("/wp-json/wp/v2/posts")
 async def wp_posts() -> JSONResponse:
     return JSONResponse(_FAKE_POSTS)
+
+
+# Endpoints REST courants : un vrai WordPress renvoie du JSON ici (pas un 404).
+# Leur absence (404 HTML) serait un tell pour WPScan / un scanner REST.
+@router.get("/wp-json/wp/v2/pages")
+async def wp_pages() -> JSONResponse:
+    return JSONResponse(
+        [
+            {
+                "id": 2,
+                "slug": "sample-page",
+                "status": "publish",
+                "type": "page",
+                "link": "/?page_id=2",
+                "title": {"rendered": "Sample Page"},
+                "excerpt": {"rendered": "<p>This is an example page.</p>"},
+            }
+        ]
+    )
+
+
+@router.get("/wp-json/wp/v2/comments")
+async def wp_comments() -> JSONResponse:
+    return JSONResponse(
+        [
+            {
+                "id": 1,
+                "post": 1,
+                "parent": 0,
+                "author_name": "A WordPress Commenter",
+                "author_url": "https://wordpress.org/",
+                "date": "2024-04-15T09:42:11",
+                "content": {"rendered": "<p>Hi, this is a comment.</p>"},
+                "link": "/?p=1#comment-1",
+                "status": "approved",
+                "type": "comment",
+            }
+        ]
+    )
+
+
+@router.get("/wp-json/wp/v2/categories")
+async def wp_categories() -> JSONResponse:
+    return JSONResponse(
+        [
+            {
+                "id": 1,
+                "count": 1,
+                "name": "Uncategorized",
+                "slug": "uncategorized",
+                "taxonomy": "category",
+                "link": "/category/uncategorized/",
+            }
+        ]
+    )
+
+
+@router.get("/wp-json/wp/v2/tags")
+async def wp_tags() -> JSONResponse:
+    return JSONResponse([])
+
+
+@router.get("/wp-json/wp/v2/media")
+async def wp_media() -> JSONResponse:
+    return JSONResponse([])
+
+
+@router.get("/wp-json/wp/v2/types")
+async def wp_types() -> JSONResponse:
+    return JSONResponse(
+        {
+            "post": {"name": "Posts", "slug": "post", "rest_base": "posts"},
+            "page": {"name": "Pages", "slug": "page", "rest_base": "pages"},
+            "attachment": {"name": "Media", "slug": "attachment", "rest_base": "media"},
+            "nav_menu_item": {"name": "Navigation Menu Items", "slug": "nav_menu_item", "rest_base": "menu-items"},
+            "wp_block": {"name": "Patterns", "slug": "wp_block", "rest_base": "blocks"},
+        }
+    )
+
+
+@router.get("/wp-json/wp/v2/taxonomies")
+async def wp_taxonomies() -> JSONResponse:
+    return JSONResponse(
+        {
+            "category": {"name": "Categories", "slug": "category", "rest_base": "categories", "hierarchical": True},
+            "post_tag": {"name": "Tags", "slug": "post_tag", "rest_base": "tags", "hierarchical": False},
+        }
+    )
+
+
+@router.get("/wp-json/wp/v2/settings")
+async def wp_settings() -> JSONResponse:
+    # Endpoint protégé : sans auth, un vrai WordPress renvoie 401 JSON (pas 404).
+    return JSONResponse(
+        {"code": "rest_forbidden", "message": "Sorry, you are not allowed to do that.", "data": {"status": 401}},
+        status_code=401,
+    )
 
 
 @router.api_route("/xmlrpc.php", methods=["GET", "HEAD", "PUT", "DELETE"])
