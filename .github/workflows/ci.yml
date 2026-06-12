@@ -48,8 +48,8 @@ jobs:
       - name: Run all tests
         run: pytest --tb=short -v
 
-  # Valide que les 3 secrets d'enrichissement sont montes et fonctionnels
-  # (GeoIP via license MaxMind, AbuseIPDB, GreyNoise) sans monter la stack.
+  # Valide que les secrets d'enrichissement sont montes et fonctionnels
+  # (AbuseIPDB, GreyNoise) sans monter la stack.
   enrich:
     needs: lint
     runs-on: ubuntu-latest
@@ -59,38 +59,22 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r analyzer/requirements.txt
-      - name: Bases GeoLite2 (City + ASN)
-        env:
-          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
-        run: |
-          mkdir -p data/geoip
-          for ed in GeoLite2-City GeoLite2-ASN; do
-            tmp=$(mktemp -d)
-            curl -sSL "https://download.maxmind.com/app/geoip_download?edition_id=$ed&license_key=${MAXMIND_LICENSE_KEY}&suffix=tar.gz" -o "$tmp/$ed.tar.gz"
-            tar -xzf "$tmp/$ed.tar.gz" -C "$tmp"
-            find "$tmp" -name "$ed.mmdb" -exec mv {} "data/geoip/$ed.mmdb" \;
-          done
-      - name: Enrichissement live (valide les 3 secrets)
+      - name: Enrichissement live (valide les secrets)
         env:
           ABUSEIPDB_API_KEY: ${{ secrets.ABUSEIPDB_API_KEY }}
           GREYNOISE_API_KEY: ${{ secrets.GREYNOISE_API_KEY }}
-          GEOIP_CITY_DB: data/geoip/GeoLite2-City.mmdb
-          GEOIP_ASN_DB: data/geoip/GeoLite2-ASN.mmdb
         run: |
           python - <<'PY'
           import json
-          from analyzer.enrichers.geoip import GeoIPEnricher
           from analyzer.enrichers.abuseipdb import AbuseIPDBEnricher
           from analyzer.enrichers.greynoise import GreyNoiseEnricher
-          ip = "71.6.199.23"  # scanner Shodan : exerce les 3 enrichers
-          geo = GeoIPEnricher().enrich(ip)
+          ip = "71.6.199.23"  # scanner Shodan : exerce les 2 enrichers
           abuse = AbuseIPDBEnricher().enrich(ip)
           gn = GreyNoiseEnricher().enrich(ip)
-          print(json.dumps({"geoip": geo, "abuse": abuse, "greynoise": gn}, indent=2))
-          assert geo["country_code"], "GeoIP vide (MAXMIND_LICENSE_KEY ?)"
+          print(json.dumps({"abuse": abuse, "greynoise": gn}, indent=2))
           assert abuse["abuse_score"] > 0, "AbuseIPDB=0 (ABUSEIPDB_API_KEY ?)"
           assert gn["greynoise_classification"] not in ("", "unknown"), "GreyNoise vide (GREYNOISE_API_KEY ?)"
-          print("OK: 3 enrichers alimentes par les secrets")
+          print("OK: 2 enrichers alimentes par les secrets")
           PY
 
   build:
@@ -141,7 +125,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ matrix.image == 'honeypot-analyzer' && format('MAXMIND_LICENSE_KEY={0}', secrets.MAXMIND_LICENSE_KEY) || '' }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
