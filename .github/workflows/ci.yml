@@ -26,27 +26,54 @@ jobs:
       - run: pip install bandit
       - run: bandit -r honeypots/ pipeline/ dashboard/ -ll -ii
 
+  # Tests unitaires PAR COMPOSANT. Les honeypots embarquent des modules à plat
+  # (config.py, events.py, server.py, detection.py) avec des noms IDENTIQUES
+  # entre ssh et ftp : les lancer dans le même process pytest provoque des
+  # collisions de modules top-level. On exécute donc chaque suite isolément,
+  # dans son propre dossier — exactement comme l'image Docker les importe
+  # (WORKDIR /app, `python server.py`). L'attacker tourne depuis la racine
+  # (son module local `logging.py` masquerait la stdlib autrement).
   test:
     needs: lint
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: honeypot-ssh
+            dir: honeypots/ssh
+            target: tests/
+          - name: honeypot-ftp
+            dir: honeypots/ftp
+            target: tests/
+          - name: honeypot-http
+            dir: honeypots/http
+            target: tests/
+          - name: analyzer
+            dir: analyzer
+            target: tests/
+          - name: attacker
+            dir: .
+            target: attacker/tests/
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install dependencies
+      - name: Install test deps (${{ matrix.name }})
+        working-directory: ${{ matrix.dir }}
         run: |
-          pip install --upgrade pip
-          pip install pytest
-          find . -name "requirements*.txt" \
-            -not -path "./.git/*" \
-            | xargs -I {} pip install -r {}
-
-      - name: Run all tests
-        run: pytest --tb=short -v
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          else
+            pip install pytest
+          fi
+      - name: pytest (${{ matrix.name }})
+        working-directory: ${{ matrix.dir }}
+        # `python -m pytest` met le cwd sur sys.path => imports à plat OK,
+        # comme en conteneur. Pas de pytest.ini racine (collecte globale = collisions).
+        run: python -m pytest ${{ matrix.target }} -q
 
   # Valide que les secrets d'enrichissement sont montes et fonctionnels
   # (AbuseIPDB, GreyNoise) sans monter la stack.

@@ -11,14 +11,14 @@ from pathlib import Path
 import pytest
 from commands import ShellState, run_command
 from config import Credential, load_config
-from events import build_event, normalize_ipv4
-from jsonschema import Draft7Validator
-from ssh.detection import (
+from detection import (
     SessionProfiler,
     classify_command,
     detect_malware,
     is_escalation,
 )
+from events import build_event, normalize_ipv4
+from jsonschema import Draft7Validator
 
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / "docs" / "event.schema.json"
 

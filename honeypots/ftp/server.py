@@ -23,18 +23,17 @@ import time
 import uuid
 
 from config import Config, load_config
-from events import EventSink, build_event
-from filesystem import is_canary, materialize
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-
-from ftp.detection import (
+from detection import (
     SessionProfiler,
     classify_command,
     classify_credential_reuse,
     classify_download,
 )
+from events import EventSink, build_event
+from filesystem import is_canary, materialize
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
 
 # Commandes d'authentification : journalisées via les callbacks on_login* (avec
 # le couple identifiant/mot de passe), jamais comme événement "command" — on

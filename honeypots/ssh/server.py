@@ -24,9 +24,8 @@ from dataclasses import dataclass, field
 import asyncssh
 from commands import ShellState, run_command
 from config import Config, load_config
+from detection import SessionProfiler, classify_command, is_escalation
 from events import EventSink, build_event
-
-from ssh.detection import SessionProfiler, classify_command, is_escalation
 
 # Version annoncée : OpenSSH Debian plausible plutôt que la bannière asyncssh
 # (réduit le fingerprinting trivial du honeypot).
