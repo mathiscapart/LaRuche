@@ -9,17 +9,27 @@
 - **Analysis Pipeline**: Enriches logs with GeoIP, AbuseIPDB, and GreyNoise data, and classifies attacker behavior.
 - **Centralized Logging**: Fluent Bit collects and forwards logs to OpenObserve for visualization and analysis.
 - **Dashboards**: Pre-configured OpenObserve dashboards for monitoring and threat intelligence.
+- **Realistic Emulation**: An Apache reverse proxy fronts the HTTP honeypot, serving the real WordPress static assets and authentic Apache headers/error pages so the deception is hard to fingerprint.
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[Attacker] -->|Simulated Attacks| B[Honeypots]
-    B -->|JSON Logs| C[Analyzer]
-    C -->|Enriched Logs| D[Fluent Bit]
-    D -->|Forwarded Logs| E[OpenObserve]
-    E -->|Visualization| F[Dashboards]
+    A[Attacker / Internet] -->|HTTP| P[Apache reverse proxy]
+    A -->|SSH / FTP| H[SSH and FTP honeypots]
+    P -->|real static WP assets| A
+    P -->|dynamic requests| W[HTTP honeypot - WordPress]
+    H -->|JSON logs| C[Analyzer]
+    W -->|JSON logs| C
+    C -->|enriched events| D[Fluent Bit]
+    D --> E[OpenObserve]
+    E --> F[Dashboards]
 ```
+
+Public HTTP traffic enters through the **Apache reverse proxy** (the only exposed
+HTTP surface); the HTTP honeypot itself runs internally. SSH and FTP honeypots are
+exposed directly. All honeypots write JSON events to a shared volume that the
+analyzer enriches before Fluent Bit forwards them to OpenObserve.
 
 ## Quick Start
 
@@ -74,7 +84,15 @@ docker compose run --rm attacker all --target 10.13.0.10 --parallel
 
 - **SSH Honeypot**: Listens on ports 22 and 2222, accepts weak credentials, and logs all interactions.
 - **FTP Honeypot**: Listens on ports 21 and 2121, supports anonymous login, and logs all interactions.
-- **HTTP Honeypot**: Listens on ports 80 and 8080, emulates a WordPress site, and logs all requests.
+- **HTTP Honeypot**: Emulates a WordPress 6.5.2 site — fake `wp-login`/`wp-admin` with credential capture, REST API, dynamic `phpinfo`, phpMyAdmin, exploit/scanner detection and a `.env` canary. It runs **internally**, fronted by the Apache reverse proxy (see below).
+
+### Reverse Proxy (Apache)
+
+The `honeypot-proxy` service is a real **Apache 2.4.57 (Debian)** in front of the HTTP honeypot — it is the only public HTTP surface (ports 80 and 8080) and makes the deception much harder to detect:
+
+- Serves the **real WordPress 6.5.2 static assets** from disk (`wp-includes`, `wp-content`, `wp-admin/{css,js,images}`, `readme.html`, `license.txt`), so they return authentic `ETag` / `Last-Modified` / `Accept-Ranges` headers and byte-exact content.
+- Emits genuine Apache headers, version string and error pages (with the `Server at … Port 80` footer).
+- Reverse-proxies every dynamic request to the internal HTTP honeypot (FastAPI).
 
 ## Attacker
 
