@@ -366,7 +366,7 @@ def run(config: HttpScanConfig, reports_dir: Path) -> HttpScanReport:
     start = time.monotonic()
     report = HttpScanReport(target=config.base_url)
 
-    results = make_results_dir(reports_dir, prefix="http")
+    results = make_results_dir(reports_dir, prefix=f"http-{config.target_port}")
     logger.info("Artefacts directory: %s", results.path)
 
     rich = report_mod.Report(
