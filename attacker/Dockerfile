@@ -24,6 +24,8 @@ RUN apt-get update \
 				libxml-writer-perl \
 				libmime-base64-perl \
 				libxml-libxml-perl \
+				sshpass \
+				openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L https://github.com/sullo/nikto/releases/download/2.6.0/nikto-main.zip -o /tmp/nikto.zip \
