@@ -34,7 +34,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT payload_password as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_password IS NOT NULL GROUP BY payload_password ORDER BY y_axis_1 DESC LIMIT 15",
+              "query": "SELECT payload_password as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type IN ('auth_attempt','auth_success') AND payload_password IS NOT NULL AND payload_password != '' GROUP BY payload_password ORDER BY y_axis_1 DESC LIMIT 15",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -101,7 +101,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT payload_username as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_username IS NOT NULL GROUP BY payload_username ORDER BY y_axis_1 DESC LIMIT 15",
+              "query": "SELECT payload_username as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type IN ('auth_attempt','auth_success') AND payload_username IS NOT NULL AND payload_username != '' GROUP BY payload_username ORDER BY y_axis_1 DESC LIMIT 15",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
