@@ -126,11 +126,10 @@ services:
     image: qualite863/honeypot-http:latest
     container_name: honeypot-http
     restart: unless-stopped
-    # 80 (HTTP standard, crédibilité) et 8080 (cible des scripts d'attaque).
-    # Le honeypot écoute en interne sur 8080 (port non privilégié -> non-root).
-    ports:
-      - "80:8080"
-      - "8080:8080"
+    # N'est plus exposé directement : seul le reverse-proxy Apache (honeypot-proxy)
+    # le joint, en interne via honeypot-front (port 8080, process non-root).
+    expose:
+      - "8080"
     environment:
       HONEYPOT_HOST: "prod-srv-01"
       HTTP_LOG_FILE: "/var/log/honeypot/http.jsonl"
@@ -147,6 +146,38 @@ services:
       - no-new-privileges:true
     read_only: true
     tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+          pids: 200
+
+  # Reverse-proxy Apache (anti-détection) : sert les assets statiques WordPress
+  # RÉELS (vrais ETag/Last-Modified) et émet des en-têtes / pages d'erreur Apache
+  # authentiques ; proxifie le dynamique vers honeypot-http. Seule surface HTTP
+  # publique. Image autonome (config + assets bakés) — rien à monter côté hôte.
+  honeypot-proxy:
+    image: qualite863/honeypot-proxy:latest
+    container_name: honeypot-proxy
+    restart: unless-stopped
+    depends_on:
+      - honeypot-http
+    # 80 (HTTP standard) et 8080 (cible des scripts d'attaque) -> Apache:80 interne.
+    ports:
+      - "80:80"
+      - "8080:80"
+    networks:
+      - honeypot-front
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    # Apache doit pouvoir écrire pid / mutex / logs sous une racine en lecture seule.
+    tmpfs:
+      - /var/run/apache2
+      - /var/lock/apache2
+      - /var/log/apache2
       - /tmp
     deploy:
       resources:

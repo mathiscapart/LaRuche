@@ -88,6 +88,8 @@ jobs:
             context: ./honeypots/ftp
           - image: honeypot-http
             context: ./honeypots/http
+          - image: honeypot-proxy
+            context: ./honeypots/proxy
           - image: honeypot-ssh
             context: ./honeypots/ssh
           - image: honeybot
