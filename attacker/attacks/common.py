@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import re
 import socket
 import subprocess
@@ -37,7 +38,26 @@ __all__ = [
     "run_credential_bruteforce",
     "run_hydra",
 ]
-_DEFAULT_UA = "Mozilla/5.0 (compatible; attacker/1.0; +https://m1spro.local)"
+
+_BROWSER_USER_AGENTS = (
+    # Chrome — Windows / macOS / Linux
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    # Firefox — Windows / macOS / Linux
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    # Safari — macOS
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+    # Edge — Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+)
+
+
+def _random_user_agent() -> str:
+    """Pick a realistic browser User-Agent, varied on each call."""
+    return random.choice(_BROWSER_USER_AGENTS)  # noqa: S311 — evasion, not crypto
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -202,7 +222,7 @@ def http_request(
     allow_redirects: bool = True,
 ) -> HttpResponse:
     url = base_url.rstrip("/") + path
-    full_headers: dict[str, str] = {"User-Agent": _DEFAULT_UA}
+    full_headers: dict[str, str] = {"User-Agent": _random_user_agent()}
     if headers:
         full_headers.update(headers)
 

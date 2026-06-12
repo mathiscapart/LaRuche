@@ -97,14 +97,18 @@ def test_check_payload_file_empty_is_missing(tmp_path):
 
 # --- check_for_command -----------------------------------------------------
 def test_check_for_command_ssh_only_needs_hydra(monkeypatch):
-    monkeypatch.setattr(deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok"))
+    monkeypatch.setattr(
+        deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok")
+    )
     report = check_for_command("ssh", check_network=False)
     binary_names = {r.name for r in report.by_kind("binary")}
     assert binary_names == {"hydra"}
 
 
 def test_check_for_command_all_dedupes_hydra(monkeypatch):
-    monkeypatch.setattr(deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok"))
+    monkeypatch.setattr(
+        deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok")
+    )
     report = check_for_command("all", check_network=False)
     names = [r.name for r in report.by_kind("binary")]
     assert names.count("hydra") == 1
@@ -112,11 +116,15 @@ def test_check_for_command_all_dedupes_hydra(monkeypatch):
 
 
 def test_check_for_command_runs_network_checks(monkeypatch):
-    monkeypatch.setattr(deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok"))
+    monkeypatch.setattr(
+        deps, "check_binary", lambda spec: DepResult(spec.name, "binary", "ok")
+    )
     monkeypatch.setattr(
         deps,
         "check_tcp_port",
-        lambda host, port, **k: DepResult(f"{k['service']}@{port}", "network", "ok", required=False),
+        lambda host, port, **k: DepResult(
+            f"{k['service']}@{port}", "network", "ok", required=False
+        ),
     )
     report = check_for_command("ssh", target="1.2.3.4", check_network=True)
     assert report.by_kind("network")

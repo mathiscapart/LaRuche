@@ -70,13 +70,17 @@ class _FakeResult:
 
 
 def test_discover_services_missing_binary(monkeypatch):
-    monkeypatch.setattr(port_scan, "run_command", lambda *a, **k: _FakeResult(127, "", "", False))
+    monkeypatch.setattr(
+        port_scan, "run_command", lambda *a, **k: _FakeResult(127, "", "", False)
+    )
     with pytest.raises(NmapError, match="not found"):
         discover_services("host")
 
 
 def test_discover_services_timeout(monkeypatch):
-    monkeypatch.setattr(port_scan, "run_command", lambda *a, **k: _FakeResult(124, "", "", True))
+    monkeypatch.setattr(
+        port_scan, "run_command", lambda *a, **k: _FakeResult(124, "", "", True)
+    )
     with pytest.raises(NmapError, match="timed out"):
         discover_services("host", timeout=5)
 

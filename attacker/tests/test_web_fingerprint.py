@@ -63,7 +63,9 @@ def test_detect_technologies_empty_for_bare_response():
 def test_detect_version_from_inline_generator(monkeypatch):
     home = _resp(body='<meta name="generator" content="WordPress 6.5.2" />')
     # No network needed: the inline generator short-circuits before version_paths.
-    version = _detect_version(_signature("WordPress"), "http://x", home, timeout=1, pause=0)
+    version = _detect_version(
+        _signature("WordPress"), "http://x", home, timeout=1, pause=0
+    )
     assert version == "6.5.2"
 
 
@@ -74,7 +76,9 @@ def test_detect_version_from_version_path(monkeypatch):
         "http_request",
         lambda *a, **k: _resp(status=200, body="Version 4.9.1"),
     )
-    version = _detect_version(_signature("WordPress"), "http://x", home, timeout=1, pause=0)
+    version = _detect_version(
+        _signature("WordPress"), "http://x", home, timeout=1, pause=0
+    )
     assert version == "4.9.1"
 
 

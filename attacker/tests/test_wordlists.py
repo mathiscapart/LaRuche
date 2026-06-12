@@ -12,12 +12,20 @@ from attacker import wordlists
 @pytest.fixture
 def patched_dirs(monkeypatch, tmp_path):
     """Point every wordlist local path at a temp directory."""
-    monkeypatch.setattr(wordlists, "_DIRSEARCH_WORDLIST_LOCAL", tmp_path / "directories.txt")
-    monkeypatch.setattr(wordlists, "_PASSWORD_WORDLIST_LOCAL", tmp_path / "passwords.txt")
-    monkeypatch.setattr(wordlists, "_USERNAME_WORDLIST_LOCAL", tmp_path / "usernames.txt")
+    monkeypatch.setattr(
+        wordlists, "_DIRSEARCH_WORDLIST_LOCAL", tmp_path / "directories.txt"
+    )
+    monkeypatch.setattr(
+        wordlists, "_PASSWORD_WORDLIST_LOCAL", tmp_path / "passwords.txt"
+    )
+    monkeypatch.setattr(
+        wordlists, "_USERNAME_WORDLIST_LOCAL", tmp_path / "usernames.txt"
+    )
     monkeypatch.setattr(wordlists, "_FTP_DEFAULT_CREDS_LOCAL", tmp_path / "ftp.txt")
     monkeypatch.setattr(wordlists, "_SSH_DEFAULT_CREDS_LOCAL", tmp_path / "ssh.txt")
-    monkeypatch.setattr(wordlists, "_HTTP_DEFAULT_PASSWORDS_LOCAL", tmp_path / "http.txt")
+    monkeypatch.setattr(
+        wordlists, "_HTTP_DEFAULT_PASSWORDS_LOCAL", tmp_path / "http.txt"
+    )
     return tmp_path
 
 

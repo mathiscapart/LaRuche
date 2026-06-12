@@ -29,7 +29,9 @@ def test_risk_rating_critical_when_credentials_found():
 
 
 def test_risk_rating_follows_highest_severity():
-    rep = _report(findings=[r.ReportFinding("medium", "x"), r.ReportFinding("low", "y")])
+    rep = _report(
+        findings=[r.ReportFinding("medium", "x"), r.ReportFinding("low", "y")]
+    )
     assert rep.highest_severity == "medium"
     assert rep.risk_rating == "Medium"
 
@@ -95,7 +97,10 @@ def test_to_json_roundtrips_and_has_expected_keys():
     assert data["target"] == "ssh://10.0.0.1:2222"
     assert data["risk_rating"] == "Critical"
     assert data["credentials"][0] == {
-        "username": "a", "password": "b", "service": "SSH", "note": ""
+        "username": "a",
+        "password": "b",
+        "service": "SSH",
+        "note": "",
     }
     assert data["honeypot"]["score"] == 10
 

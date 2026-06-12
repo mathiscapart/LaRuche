@@ -9,7 +9,13 @@ from attacker.logging import ColoredFormatter, setup_logging
 
 def _record(level=logging.INFO, msg="hello"):
     return logging.LogRecord(
-        name="t", level=level, pathname=__file__, lineno=1, msg=msg, args=(), exc_info=None
+        name="t",
+        level=level,
+        pathname=__file__,
+        lineno=1,
+        msg=msg,
+        args=(),
+        exc_info=None,
     )
 
 
@@ -27,8 +33,13 @@ def test_colored_formatter_with_color_wraps_level():
 
 def test_colored_formatter_interpolates_args():
     record = logging.LogRecord(
-        name="t", level=logging.INFO, pathname=__file__, lineno=1,
-        msg="value=%d", args=(42,), exc_info=None,
+        name="t",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="value=%d",
+        args=(42,),
+        exc_info=None,
     )
     assert ColoredFormatter(use_color=False).format(record) == "[INFO ] value=42"
 
