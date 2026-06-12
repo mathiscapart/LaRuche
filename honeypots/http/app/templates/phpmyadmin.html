@@ -1,29 +1,229 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-	<meta charset="utf-8" />
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="referrer" content="no-referrer">
+	<meta name="robots" content="noindex,nofollow">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>phpMyAdmin</title>
-	<link rel="stylesheet" href="/phpmyadmin/themes/pmahomme/css/theme.css" />
+	<style type="text/css">
+	* { margin: 0; padding: 0; }
+	html { height: 100%; }
+	body {
+		font-family: sans-serif;
+		font-size: 82%;
+		color: #000;
+		background: #fff;
+		background-image: linear-gradient(to bottom, #c1d9e9 0, #fff 480px);
+		background-repeat: repeat-x;
+		min-height: 100%;
+	}
+	a { color: #235a81; text-decoration: none; cursor: pointer; }
+	a:hover { color: #235a81; text-decoration: underline; }
+	a:visited { color: #235a81; }
+	img { border: 0; vertical-align: middle; }
+	select, textarea, input { font-size: 1em; font-family: sans-serif; }
+
+	#page_content {
+		margin: 0 auto;
+		max-width: 30em;
+	}
+
+	#pma_navigation_resizer { display: none; }
+
+	/* Logo */
+	#logo {
+		text-align: center;
+		margin-top: 1em;
+	}
+	#logo .pma_logo_svg {
+		width: 88px;
+		height: auto;
+		margin-top: 1em;
+	}
+
+	/* Header title */
+	h1 {
+		font-size: 1.7em;
+		font-weight: bold;
+		text-align: center;
+		margin: 0.5em 0 0.7em 0;
+		color: #235a81;
+	}
+
+	/* Language selector */
+	#languages {
+		text-align: center;
+		margin: 0 auto 1em auto;
+	}
+	#languages label { margin-right: 0.4em; }
+	#languages select {
+		border: 1px solid #aaa;
+		padding: 2px;
+		background: #fff;
+	}
+
+	/* Login form box */
+	.container {
+		width: 32em;
+		max-width: 90%;
+		margin: 0 auto;
+	}
+	form.login {
+		margin: 0 auto;
+	}
+	form.login fieldset {
+		display: block;
+		margin: 0 auto 1em auto;
+		padding: 1em 1.5em 1.5em 1.5em;
+		border: 1px solid #aaa;
+		border-radius: 5px;
+		background: #ebf2f7;
+		background-image: linear-gradient(to bottom, #f5f5f5 0, #ebf2f7 100%);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	}
+	form.login fieldset legend {
+		font-weight: bold;
+		color: #235a81;
+		padding: 0 0.5em;
+		margin-left: 0.3em;
+	}
+	form.login .item {
+		margin: 0;
+		padding: 0.55em 0;
+		clear: both;
+		display: block;
+	}
+	form.login label {
+		display: block;
+		float: left;
+		width: 8em;
+		padding-top: 0.35em;
+		text-align: left;
+		font-weight: bold;
+	}
+	form.login input[type="text"],
+	form.login input[type="password"] {
+		width: 16em;
+		max-width: 100%;
+		padding: 0.4em 0.45em;
+		border: 1px solid #a7a7a7;
+		border-radius: 3px;
+		background: #fff;
+		color: #000;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	}
+	form.login input[type="text"]:focus,
+	form.login input[type="password"]:focus,
+	form.login select:focus {
+		border-color: #235a81;
+		outline: none;
+		box-shadow: 0 0 4px rgba(35, 90, 129, 0.5);
+	}
+	form.login input[type="submit"] {
+		float: right;
+		margin-top: 0.5em;
+		padding: 0.4em 1.3em;
+		font-weight: bold;
+		color: #fff;
+		cursor: pointer;
+		border: 1px solid #235a81;
+		border-radius: 3px;
+		background: #235a81;
+		background-image: linear-gradient(to bottom, #4d7da3 0, #235a81 100%);
+		text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+	}
+	form.login input[type="submit"]:hover {
+		background: #1c4a6b;
+		background-image: linear-gradient(to bottom, #3f6e93 0, #1c4a6b 100%);
+	}
+
+	/* Footer / version */
+	#pma_footer,
+	.footnote,
+	p.version {
+		clear: both;
+		text-align: center;
+		color: #666;
+		font-size: 0.9em;
+		margin: 1.5em auto 2em auto;
+	}
+
+	.clearfloat { clear: both; }
+	</style>
 </head>
 <body class="loginform">
-<div class="container">
+<div id="page_content">
+
+	<div id="logo">
+		<bdo dir="ltr">
+		<svg class="pma_logo_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 270" role="img" aria-label="phpMyAdmin">
+			<title>phpMyAdmin</title>
+			<g fill="none" stroke="#235a81" stroke-width="14">
+				<circle cx="135" cy="135" r="78"/>
+			</g>
+			<g fill="#235a81">
+				<circle cx="135" cy="135" r="34"/>
+				<g>
+					<rect x="127" y="25" width="16" height="34" rx="6"/>
+					<rect x="127" y="211" width="16" height="34" rx="6"/>
+					<rect x="25" y="127" width="34" height="16" rx="6"/>
+					<rect x="211" y="127" width="34" height="16" rx="6"/>
+					<rect x="48" y="48" width="16" height="40" rx="6" transform="rotate(-45 56 68)"/>
+					<rect x="206" y="48" width="16" height="40" rx="6" transform="rotate(45 214 68)"/>
+					<rect x="48" y="182" width="16" height="40" rx="6" transform="rotate(45 56 202)"/>
+					<rect x="206" y="182" width="16" height="40" rx="6" transform="rotate(-45 214 202)"/>
+				</g>
+			</g>
+			<circle cx="135" cy="135" r="14" fill="#abcdef"/>
+		</svg>
+		</bdo>
+	</div>
+
 	<h1>Welcome to <bdo dir="ltr">phpMyAdmin</bdo></h1>
-	<form method="post" action="/phpmyadmin/index.php" name="login_form" class="login">
-		<fieldset>
-			<legend>Log in</legend>
-			<div class="item">
-				<label for="input_username">Username:</label>
-				<input type="text" name="pma_username" id="input_username" value="" size="24" />
-			</div>
-			<div class="item">
-				<label for="input_password">Password:</label>
-				<input type="password" name="pma_password" id="input_password" value="" size="24" />
-			</div>
-			<input type="hidden" name="server" value="1" />
-			<input type="submit" name="login" id="input_go" value="Go" />
-		</fieldset>
-	</form>
-	<p>phpMyAdmin 5.1.1</p>
+
+	<div id="languages">
+		<form method="get" action="/phpmyadmin/index.php" class="disableAjax">
+			<label for="sel-lang">Language:</label>
+			<bdo dir="ltr"><select id="sel-lang" name="lang" dir="ltr">
+				<option value="en" selected="selected" lang="en" dir="ltr">English</option>
+				<option value="fr" lang="fr" dir="ltr">Fran&ccedil;ais - French</option>
+				<option value="de" lang="de" dir="ltr">Deutsch - German</option>
+				<option value="es" lang="es" dir="ltr">Espa&ntilde;ol - Spanish</option>
+				<option value="it" lang="it" dir="ltr">Italiano - Italian</option>
+				<option value="pt" lang="pt" dir="ltr">Portugu&ecirc;s - Portuguese</option>
+				<option value="ru" lang="ru" dir="ltr">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; - Russian</option>
+				<option value="zh_CN" lang="zh-CN" dir="ltr">&#20013;&#25991; - Chinese simplified</option>
+				<option value="ja" lang="ja" dir="ltr">&#26085;&#26412;&#35486; - Japanese</option>
+			</select></bdo>
+		</form>
+	</div>
+
+	<div class="container">
+		<form method="post" action="/phpmyadmin/index.php" name="login_form" class="login disableAjax hide js-show" autocomplete="off">
+			<fieldset>
+				<legend><bdo dir="ltr">Log in</bdo> &#160;<a href="/phpmyadmin/doc/html/index.html" target="documentation"><img src="data:image/gif;base64,R0lGODlhAAAAAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" width="11" height="11" alt="Documentation"></a></legend>
+				<div class="item">
+					<label for="input_username">Username:</label>
+					<input type="text" name="pma_username" id="input_username" value="" size="24" class="textfield" autocomplete="username" spellcheck="false">
+				</div>
+				<div class="item">
+					<label for="input_password">Password:</label>
+					<input type="password" name="pma_password" id="input_password" value="" size="24" class="textfield" autocomplete="current-password" spellcheck="false">
+				</div>
+				<input type="hidden" name="server" value="1">
+				<input type="hidden" name="target" value="index.php">
+				<input type="hidden" name="token" value="">
+				<input type="submit" name="login" id="input_go" value="Go" tabindex="3" class="button">
+				<div class="clearfloat"></div>
+			</fieldset>
+		</form>
+	</div>
+
+	<div class="clearfloat"></div>
+	<p class="version" id="pma_footer">phpMyAdmin 5.1.1</p>
+
 </div>
 </body>
 </html>
