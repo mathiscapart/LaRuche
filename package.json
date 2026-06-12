@@ -1,6 +1,6 @@
 {
   "name": "laruche",
-  "version": "0.0.0-development",
+  "version": "0.0.0",
   "description": "LaRuche - Honeypot Security System",
   "private": true,
   "repository": {
