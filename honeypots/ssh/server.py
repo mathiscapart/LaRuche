@@ -24,8 +24,9 @@ from dataclasses import dataclass, field
 import asyncssh
 from commands import ShellState, run_command
 from config import Config, load_config
-from detection import SessionProfiler, classify_command, is_escalation
 from events import EventSink, build_event
+
+from ssh.detection import SessionProfiler, classify_command, is_escalation
 
 # Version annoncée : OpenSSH Debian plausible plutôt que la bannière asyncssh
 # (réduit le fingerprinting trivial du honeypot).
@@ -35,8 +36,22 @@ SERVER_VERSION = "OpenSSH_9.2p1 Debian-2+deb12u2"
 # latence sensible et variable. Les autres répondent quasi instantanément :
 # une latence *uniforme* sur toutes les commandes serait elle-même un tell.
 _SLOW_COMMANDS = {
-    "wget", "curl", "apt", "apt-get", "ping", "nmap", "git", "docker",
-    "pip", "pip3", "nslookup", "dig", "host", "scp", "ssh", "systemctl",
+    "wget",
+    "curl",
+    "apt",
+    "apt-get",
+    "ping",
+    "nmap",
+    "git",
+    "docker",
+    "pip",
+    "pip3",
+    "nslookup",
+    "dig",
+    "host",
+    "scp",
+    "ssh",
+    "systemctl",
 }
 
 
@@ -52,6 +67,7 @@ def _response_latency(line: str, config: Config) -> float:
     if cmd in _SLOW_COMMANDS:
         return base + random.uniform(0.12, 0.85)  # noqa: S311
     return base
+
 
 # Corrèle les événements d'auth (côté SSHServer) avec la session shell
 # (côté process_factory), par adresse (host, port) — unique par connexion TCP.
@@ -274,9 +290,7 @@ def _login_banner(record: SessionRecord) -> str:
     )
 
 
-async def handle_shell(
-    process: asyncssh.SSHServerProcess, config: Config, sink: EventSink
-) -> None:
+async def handle_shell(process: asyncssh.SSHServerProcess, config: Config, sink: EventSink) -> None:
     """Boucle du faux shell (mode interactif) ou exécution unique (mode exec)."""
     peer = process.get_extra_info("peername")
     record = _REGISTRY.get((peer[0], peer[1]))
@@ -366,12 +380,10 @@ async def main() -> None:
     sink = EventSink(config.log_file)
 
     listeners = ", ".join(
-        f"{config.bind_host}:{p}->dst_port {config.port_map[p]}"
-        for p in sorted(config.port_map)
+        f"{config.bind_host}:{p}->dst_port {config.port_map[p]}" for p in sorted(config.port_map)
     )
     print(
-        f"[ssh-honeypot] écoute sur {listeners} "
-        f"(hostname simulé: {config.hostname})",
+        f"[ssh-honeypot] écoute sur {listeners} (hostname simulé: {config.hostname})",
         file=sys.stderr,
     )
 
