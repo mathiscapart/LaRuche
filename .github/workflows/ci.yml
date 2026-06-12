@@ -94,7 +94,7 @@ jobs:
           PY
 
   build:
-    needs: lint
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -166,7 +166,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "qualite863/${{ matrix.image }}:${{ github.sha }}"
+          image-ref: "qualite863/${{ matrix.image }}:latest"
           format: "table"
           exit-code: 1
           ignore-unfixed: true
