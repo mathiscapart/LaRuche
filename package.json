@@ -5,7 +5,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/qualite863/LaRuche.git"
+    "url": "git+ssh://git@github.com/mathiscapart/LaRuche.git"
   },
   "scripts": {
     "release": "semantic-release"
@@ -31,5 +31,16 @@
     "publish": [
       "@semantic-release/github"
     ]
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/qualite863/LaRuche/issues"
+  },
+  "homepage": "https://github.com/qualite863/LaRuche#readme"
 }
