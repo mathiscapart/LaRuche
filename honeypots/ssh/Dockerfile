@@ -22,8 +22,8 @@ RUN useradd --system --no-create-home --uid 10001 honey \
     && chown honey:honey /var/log/honeypot
 USER honey
 
-# Port d'écoute par défaut (surchargé par SSH_BIND_PORT).
-EXPOSE 2222
+# Ports d'écoute : 2222 (standard) et 2223 (alternatif), cf. port_map.
+EXPOSE 2222 2223
 
 # Vérifie que le port SSH accepte les connexions TCP.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

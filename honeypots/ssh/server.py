@@ -58,6 +58,19 @@ def _response_latency(line: str, config: Config) -> float:
 _REGISTRY: dict[tuple[str, int], SessionRecord] = {}
 
 
+def _resolve_dst_port(config: Config, conn: object) -> int:
+    """Port public visé par l'attaquant, déduit du listener accepté.
+
+    ``sockname`` donne le port interne sur lequel la connexion a été acceptée
+    (2222 ou 2223) ; ``port_map`` le traduit en port public (22 ou 2222). Le NAT
+    Docker ayant réécrit la destination, c'est le seul moyen de distinguer les
+    deux portes d'entrée.
+    """
+    sockname = conn.get_extra_info("sockname")  # type: ignore[attr-defined]
+    listen_port = sockname[1] if sockname else config.bind_port
+    return config.port_map.get(listen_port, listen_port)
+
+
 @dataclass
 class SessionRecord:
     """État partagé d'une connexion entre l'auth et le shell."""
@@ -67,6 +80,7 @@ class SessionRecord:
     src_port: int
     started_at: float
     hostname: str
+    dst_port: int = 0
     username: str = ""
     authenticated: bool = False
     shell: ShellState = field(default_factory=ShellState)
@@ -92,6 +106,7 @@ class HoneypotServer(asyncssh.SSHServer):
             src_port=port,
             started_at=time.monotonic(),
             hostname=self._config.hostname,
+            dst_port=_resolve_dst_port(self._config, conn),
         )
         record.shell.hostname = self._config.hostname
         self._record = record
@@ -171,6 +186,7 @@ class HoneypotServer(asyncssh.SSHServer):
                 session_id=record.session_id,
                 payload=payload,
                 honeypot_host=record.hostname,
+                dst_port=record.dst_port,
             )
         )
 
@@ -193,6 +209,7 @@ class HoneypotServer(asyncssh.SSHServer):
                 },
                 classification=record.profiler.session_classification(),
                 honeypot_host=record.hostname,
+                dst_port=record.dst_port,
             )
         )
 
@@ -229,6 +246,7 @@ async def _handle_command(
             payload=payload,
             classification=classification,
             honeypot_host=record.hostname,
+            dst_port=record.dst_port,
         )
     )
 
@@ -269,6 +287,7 @@ async def handle_shell(
             src_port=peer[1],
             started_at=time.monotonic(),
             hostname=config.hostname,
+            dst_port=_resolve_dst_port(config, process),
         )
 
     username = process.get_extra_info("username") or record.username
@@ -311,8 +330,13 @@ async def handle_shell(
         pass
 
 
-async def start_server(config: Config, sink: EventSink) -> asyncssh.SSHAcceptor:
-    """Démarre le serveur SSH et renvoie l'acceptor (déjà en écoute)."""
+async def start_server(config: Config, sink: EventSink) -> list[asyncssh.SSHAcceptor]:
+    """Démarre un listener SSH par port interne et renvoie les acceptors.
+
+    Deux ports (2222 / 2223) sont écoutés pour distinguer le 22 standard du 2222
+    alternatif (cf. ``port_map``) — mêmes clés d'hôte et même logique applicative,
+    seul le ``dst_port`` émis diffère.
+    """
     # Clés d'hôte générées en mémoire : rien sur le disque à fingerprinter.
     host_keys = [
         asyncssh.generate_private_key("ssh-ed25519"),
@@ -322,27 +346,36 @@ async def start_server(config: Config, sink: EventSink) -> asyncssh.SSHAcceptor:
     def server_factory() -> HoneypotServer:
         return HoneypotServer(config, sink)
 
-    return await asyncssh.create_server(
-        server_factory,
-        host=config.bind_host,
-        port=config.bind_port,
-        server_host_keys=host_keys,
-        server_version=SERVER_VERSION,
-        process_factory=functools.partial(handle_shell, config=config, sink=sink),
-    )
+    acceptors: list[asyncssh.SSHAcceptor] = []
+    for listen_port in sorted(config.port_map):
+        acceptors.append(
+            await asyncssh.create_server(
+                server_factory,
+                host=config.bind_host,
+                port=listen_port,
+                server_host_keys=host_keys,
+                server_version=SERVER_VERSION,
+                process_factory=functools.partial(handle_shell, config=config, sink=sink),
+            )
+        )
+    return acceptors
 
 
 async def main() -> None:
     config = load_config()
     sink = EventSink(config.log_file)
 
+    listeners = ", ".join(
+        f"{config.bind_host}:{p}->dst_port {config.port_map[p]}"
+        for p in sorted(config.port_map)
+    )
     print(
-        f"[ssh-honeypot] écoute sur {config.bind_host}:{config.bind_port} "
+        f"[ssh-honeypot] écoute sur {listeners} "
         f"(hostname simulé: {config.hostname})",
         file=sys.stderr,
     )
 
-    acceptor = await start_server(config, sink)
+    acceptors = await start_server(config, sink)
 
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -355,7 +388,8 @@ async def main() -> None:
     try:
         await stop.wait()
     finally:
-        acceptor.close()
+        for acceptor in acceptors:
+            acceptor.close()
         sink.close()
         print("[ssh-honeypot] arrêt", file=sys.stderr)
 

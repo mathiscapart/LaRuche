@@ -49,6 +49,7 @@ def build_event(
     payload: dict[str, Any],
     classification: dict[str, Any] | None = None,
     honeypot_host: str = "prod-srv-01",
+    dst_port: int | None = None,
 ) -> dict[str, Any]:
     """Assemble un événement conforme au schéma HoneypotEvent."""
     event: dict[str, Any] = {
@@ -65,6 +66,9 @@ def build_event(
             "schema_version": SCHEMA_VERSION,
         },
     }
+    # Port public visé (22 standard vs 2222 alternatif) — voir port_map.
+    if dst_port is not None:
+        event["dst_port"] = dst_port
     if classification:
         event["classification"] = classification
     return event

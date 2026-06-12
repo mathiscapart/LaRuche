@@ -30,12 +30,13 @@ services:
     image: qualite863/honeypot-ssh:latest
     container_name: honeypot-ssh
     restart: unless-stopped
-    # Deux ports ouverts : 22 (SSH standard, crédibilité) et 2222 (cible des
-    # scripts d'attaque / DMZ US-20). Les deux pointent vers le honeypot qui
-    # écoute en interne sur 2222 (port non privilégié -> process non-root).
+    # Deux portes d'entrée distinctes pour pouvoir les différencier dans les
+    # events (champ dst_port) : 22 standard -> listener interne 2222 (dst_port
+    # 22), 2222 alternatif -> listener interne 2223 (dst_port 2222). Le honeypot
+    # écoute les deux ports non privilégiés (process non-root).
     ports:
       - "22:2222"
-      - "2222:2222"
+      - "2222:2223"
     environment:
       SSH_BIND_HOST: "0.0.0.0"
       SSH_BIND_PORT: "2222"

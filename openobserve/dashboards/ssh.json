@@ -168,7 +168,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT payload_auth_method as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_auth_method IS NOT NULL GROUP BY payload_auth_method ORDER BY y_axis_1 DESC",
+              "query": "SELECT payload_auth_method as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type IN ('auth_attempt','auth_success') AND payload_auth_method IS NOT NULL AND payload_auth_method != '' GROUP BY payload_auth_method ORDER BY y_axis_1 DESC",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -369,7 +369,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT payload_session_fingerprint as \"x_axis_1\", count(*) as \"y_axis_1\", max(payload_command_count) as \"x_axis_2\" FROM \"honeypot_events\" WHERE service='ssh' AND payload_session_fingerprint IS NOT NULL GROUP BY payload_session_fingerprint ORDER BY y_axis_1 DESC LIMIT 20",
+              "query": "SELECT payload_session_fingerprint as \"x_axis_1\", count(*) as \"y_axis_1\", max(payload_command_count) as \"x_axis_2\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type='disconnection' AND payload_session_fingerprint IS NOT NULL AND payload_session_fingerprint != '' GROUP BY payload_session_fingerprint ORDER BY y_axis_1 DESC LIMIT 20",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -593,6 +593,73 @@
             "w": 16,
             "h": 9,
             "i": 9
+          }
+        },
+        {
+          "id": "s_dst_port",
+          "type": "bar",
+          "title": "Connexions par port (22 standard vs 2222 alternatif)",
+          "description": "Distingue les connexions entrantes selon la porte visée : 22 (scanners opportunistes) vs 2222 (ciblage du port SSH alternatif). Basé sur le champ dst_port.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT CAST(dst_port AS VARCHAR) as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE service='ssh' AND event_type='connection' AND dst_port IS NOT NULL GROUP BY CAST(dst_port AS VARCHAR) ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Port visé",
+                    "alias": "x_axis_1",
+                    "column": "dst_port",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Connexions",
+                    "alias": "y_axis_1",
+                    "column": "dst_port",
+                    "color": "#b25960",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 45,
+            "w": 24,
+            "h": 9,
+            "i": 10
           }
         }
       ]

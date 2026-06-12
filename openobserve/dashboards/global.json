@@ -500,7 +500,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT classification_severity as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE classification_severity IS NOT NULL GROUP BY classification_severity ORDER BY y_axis_1 DESC",
+              "query": "SELECT classification_severity as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE classification_severity IS NOT NULL AND classification_severity != '' GROUP BY classification_severity ORDER BY y_axis_1 DESC",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -600,6 +600,73 @@
             "w": 12,
             "h": 9,
             "i": 9
+          }
+        },
+        {
+          "id": "g_port",
+          "type": "bar",
+          "title": "Requêtes par port",
+          "description": "Hits entrants par service mappé à son port d'écoute (SSH 22/2222, FTP 21/2121, HTTP 80/8080). Compte les events d'entrée : 'connection' (SSH/FTP) et 'request' (HTTP).",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": null,
+            "decimals": 2,
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "wrap_table_cells": true
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT CASE service WHEN 'ssh' THEN '22/2222 (SSH)' WHEN 'ftp' THEN '21/2121 (FTP)' WHEN 'http' THEN '80/8080 (HTTP)' ELSE service END as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"honeypot_events\" WHERE event_type IN ('connection','request') GROUP BY CASE service WHEN 'ssh' THEN '22/2222 (SSH)' WHEN 'ftp' THEN '21/2121 (FTP)' WHEN 'http' THEN '80/8080 (HTTP)' ELSE service END ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "honeypot_events",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Port",
+                    "alias": "x_axis_1",
+                    "column": "service",
+                    "color": null,
+                    "aggregationFunction": null,
+                    "sortBy": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Requêtes",
+                    "alias": "y_axis_1",
+                    "column": "service",
+                    "color": "#596fb2",
+                    "aggregationFunction": "count",
+                    "sortBy": null
+                  }
+                ],
+                "z": [],
+                "filter": []
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1
+              }
+            }
+          ],
+          "layout": {
+            "x": 12,
+            "y": 36,
+            "w": 24,
+            "h": 9,
+            "i": 10
           }
         }
       ]
