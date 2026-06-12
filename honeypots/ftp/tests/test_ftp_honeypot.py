@@ -14,15 +14,15 @@ from pathlib import Path
 
 import pytest
 from config import Credential, load_config
-from events import build_event, normalize_ipv4
-from filesystem import DECOY_TREE, decoy_dirs, is_canary, materialize
-from ftp.detection import (
+from detection import (
     SessionProfiler,
     classify_command,
     classify_credential_reuse,
     classify_download,
     is_recon,
 )
+from events import build_event, normalize_ipv4
+from filesystem import DECOY_TREE, decoy_dirs, is_canary, materialize
 from jsonschema import Draft7Validator
 
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / "docs" / "event.schema.json"

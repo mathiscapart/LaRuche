@@ -2,3 +2,6 @@
 -r requirements.txt
 pytest==8.3.4
 jsonschema==4.23.0
+# Client HTTP requis par starlette.TestClient (fastapi.testclient) — absent
+# sinon en CI : "starlette.testclient requires the httpx package".
+httpx==0.28.1
