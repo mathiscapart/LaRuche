@@ -93,7 +93,9 @@ class Report:
     def highest_severity(self) -> str | None:
         if not self.findings:
             return None
-        return min(self.findings, key=lambda f: SEVERITY_ORDER.get(f.severity, 5)).severity
+        return min(
+            self.findings, key=lambda f: SEVERITY_ORDER.get(f.severity, 5)
+        ).severity
 
     @property
     def risk_rating(self) -> str:
@@ -132,13 +134,9 @@ class Report:
                 f"credential(s)** on `{self.target}`."
             )
         else:
-            bits.append(
-                f"No valid credentials were recovered against `{self.target}`."
-            )
+            bits.append(f"No valid credentials were recovered against `{self.target}`.")
 
-        crit_high = sum(
-            1 for f in self.findings if f.severity in ("critical", "high")
-        )
+        crit_high = sum(1 for f in self.findings if f.severity in ("critical", "high"))
         if crit_high:
             bits.append(
                 f"{crit_high} high-severity finding(s) were raised "

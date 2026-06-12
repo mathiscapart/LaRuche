@@ -68,7 +68,9 @@ def test_match_signatures_flags_cowrie_banner():
 
 def test_match_signatures_ignores_clean_banner():
     verdict = HoneypotVerdict(target="ssh://x")
-    _match_signatures("SSH-2.0-OpenSSH_9.6", _SSH_BANNER_SIGNATURES, verdict, "ssh-banner")
+    _match_signatures(
+        "SSH-2.0-OpenSSH_9.6", _SSH_BANNER_SIGNATURES, verdict, "ssh-banner"
+    )
     assert verdict.signals == []
 
 
@@ -204,7 +206,7 @@ def test_detect_http_accepts_real_phpinfo(monkeypatch):
         "<h1>PHP Version 8.2.0</h1>"
         + "Zend Engine v4.2.0 " * 50
         + "This program is free software "
-        + "_SERVER[\"HTTP_HOST\"] Configuration File php.net "
+        + '_SERVER["HTTP_HOST"] Configuration File php.net '
         + "x" * 4000
     )
     real = HttpResponse(method="GET", path="/phpinfo.php", status=200, body=real_body)
@@ -257,7 +259,9 @@ def test_detect_http_real_phpmyadmin_with_token_not_flagged(monkeypatch):
 
 
 def test_detect_http_flags_honeytoken_breadth(monkeypatch):
-    served = HttpResponse(method="GET", path="/p", status=200, body="secret=" + "x" * 80)
+    served = HttpResponse(
+        method="GET", path="/p", status=200, body="secret=" + "x" * 80
+    )
     monkeypatch.setattr(honeypot, "http_request", lambda *a, **k: served)
     home = HttpResponse(method="GET", path="/", status=200, body="hi")
     verdict = detect_http("http://x", home)

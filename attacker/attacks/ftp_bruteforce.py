@@ -142,9 +142,7 @@ def run(
     # Pre-attack passive/active honeypot check (banner + default/decoy logins).
     verdict = detect_ftp(config.target_host, config.target_port)
 
-    default_credentials = resolve_default_credentials(
-        config.default_credentials, "ftp"
-    )
+    default_credentials = resolve_default_credentials(config.default_credentials, "ftp")
     username_wordlist = resolve_username_wordlist(config.username_wordlist)
     password_wordlist = resolve_password_wordlist(config.password_wordlist)
 
@@ -231,9 +229,7 @@ def run(
         )
     else:
         rich.phases.append(
-            report_mod.ReportPhase(
-                "Post-exploitation", "skipped", "no working login"
-            )
+            report_mod.ReportPhase("Post-exploitation", "skipped", "no working login")
         )
 
     report.honeypot_suspected = warn_if_suspected(verdict, logger)

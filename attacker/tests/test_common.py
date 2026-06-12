@@ -157,7 +157,9 @@ def test_run_hydra_parses_credentials(monkeypatch, tmp_path):
         "[2222][ssh] host: 10.0.0.1   login: root   password: calvin\n"
         "[2222][ssh] host: 10.0.0.1   login: admin   password: admin\n"
     )
-    monkeypatch.setattr(common, "run_command", lambda *a, **k: _fake_command_result(stdout))
+    monkeypatch.setattr(
+        common, "run_command", lambda *a, **k: _fake_command_result(stdout)
+    )
     results = make_results_dir(tmp_path, prefix="ssh")
     attempts, found = run_hydra(
         "ssh", "10.0.0.1", 2222, 16, 120, results, combo_wordlist=tmp_path / "c.txt"
@@ -192,7 +194,9 @@ def results_dir(tmp_path):
     return make_results_dir(tmp_path, prefix="ssh")
 
 
-def test_bruteforce_default_phase_only_when_creds_found(monkeypatch, results_dir, tmp_path):
+def test_bruteforce_default_phase_only_when_creds_found(
+    monkeypatch, results_dir, tmp_path
+):
     calls = []
 
     def fake_hydra(*a, **k):
@@ -201,7 +205,12 @@ def test_bruteforce_default_phase_only_when_creds_found(monkeypatch, results_dir
 
     monkeypatch.setattr(common, "run_hydra", fake_hydra)
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=tmp_path / "d.txt",
         username_wordlist=tmp_path / "u.txt",
         password_wordlist=tmp_path / "p.txt",
@@ -219,7 +228,12 @@ def test_bruteforce_escalates_on_confirm(monkeypatch, results_dir, tmp_path):
 
     monkeypatch.setattr(common, "run_hydra", fake_hydra)
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=tmp_path / "d.txt",
         username_wordlist=tmp_path / "u.txt",
         password_wordlist=tmp_path / "p.txt",
@@ -233,7 +247,12 @@ def test_bruteforce_escalates_on_confirm(monkeypatch, results_dir, tmp_path):
 def test_bruteforce_skips_full_when_declined(monkeypatch, results_dir, tmp_path):
     monkeypatch.setattr(common, "run_hydra", lambda *a, **k: (3, []))
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=tmp_path / "d.txt",
         username_wordlist=tmp_path / "u.txt",
         password_wordlist=tmp_path / "p.txt",
@@ -245,11 +264,17 @@ def test_bruteforce_skips_full_when_declined(monkeypatch, results_dir, tmp_path)
 def test_bruteforce_full_wordlist_skips_defaults(monkeypatch, results_dir, tmp_path):
     labels = []
     monkeypatch.setattr(
-        common, "run_hydra",
+        common,
+        "run_hydra",
         lambda *a, **k: (labels.append(k.get("label")) or (2, [])),
     )
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=tmp_path / "d.txt",
         username_wordlist=tmp_path / "u.txt",
         password_wordlist=tmp_path / "p.txt",
@@ -259,14 +284,22 @@ def test_bruteforce_full_wordlist_skips_defaults(monkeypatch, results_dir, tmp_p
     assert outcome.phases == ["full-wordlist"]
 
 
-def test_bruteforce_no_default_list_falls_back_to_full(monkeypatch, results_dir, tmp_path):
+def test_bruteforce_no_default_list_falls_back_to_full(
+    monkeypatch, results_dir, tmp_path
+):
     labels = []
     monkeypatch.setattr(
-        common, "run_hydra",
+        common,
+        "run_hydra",
         lambda *a, **k: (labels.append(k.get("label")) or (2, [])),
     )
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=None,
         username_wordlist=tmp_path / "u.txt",
         password_wordlist=tmp_path / "p.txt",
@@ -278,7 +311,12 @@ def test_bruteforce_no_default_list_falls_back_to_full(monkeypatch, results_dir,
 def test_bruteforce_full_phase_aborts_without_wordlists(monkeypatch, results_dir):
     monkeypatch.setattr(common, "run_hydra", mock.Mock())
     outcome = run_credential_bruteforce(
-        "ssh", "h", 22, tasks=4, timeout=10, results=results_dir,
+        "ssh",
+        "h",
+        22,
+        tasks=4,
+        timeout=10,
+        results=results_dir,
         default_credentials=None,
         username_wordlist=None,
         password_wordlist=None,

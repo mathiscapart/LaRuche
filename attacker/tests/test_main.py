@@ -61,8 +61,12 @@ def test_resolve_port_defaults_to_last_when_none_reachable(monkeypatch):
 # --- _plan_campaigns -------------------------------------------------------
 def _all_args(**overrides):
     base = {
-        "skip_http": False, "skip_ftp": False, "skip_ssh": False,
-        "http_port": None, "ftp_port": None, "ssh_port": None,
+        "skip_http": False,
+        "skip_ftp": False,
+        "skip_ssh": False,
+        "http_port": None,
+        "ftp_port": None,
+        "ssh_port": None,
     }
     base.update(overrides)
     return argparse.Namespace(**base)
@@ -132,7 +136,11 @@ def test_apply_cross_protocol_flags_broad_cooperation(tmp_path):
     _write_service_report(tmp_path, "ssh-1", "ssh", 55, True)
     _write_service_report(tmp_path, "ftp-1", "ftp", 55, True)
     rich = report_mod.Report(
-        title="t", target="h", protocol="all", host="h", port=0,
+        title="t",
+        target="h",
+        protocol="all",
+        host="h",
+        port=0,
         started_at=datetime.now(),
     )
     _apply_cross_protocol_honeypot(rich, tmp_path)
@@ -144,7 +152,11 @@ def test_apply_cross_protocol_flags_broad_cooperation(tmp_path):
 
 def test_apply_cross_protocol_noop_without_reports(tmp_path):
     rich = report_mod.Report(
-        title="t", target="h", protocol="all", host="h", port=0,
+        title="t",
+        target="h",
+        protocol="all",
+        host="h",
+        port=0,
         started_at=datetime.now(),
     )
     _apply_cross_protocol_honeypot(rich, tmp_path)
