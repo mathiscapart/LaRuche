@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/mathiscapart/LaRuche/compare/v1.0.0...v1.1.0) (2026-06-12)
+
+
+### Bug Fixes
+
+* ci and Dockerfile ([d01918e](https://github.com/mathiscapart/LaRuche/commit/d01918e72ddeb6766551cc1237b787a46a8b8aef))
+* **ci:** proxy Dockerfile sans cd (hadolint DL3003) — copie puis purge des non-statiques ([4ebbda5](https://github.com/mathiscapart/LaRuche/commit/4ebbda577143b15d33b035ad90d31a09a7304d07))
+* dependance hhtpx ([510b003](https://github.com/mathiscapart/LaRuche/commit/510b003393f705fa542cc3edd212f0f1a6142d60))
+
+
+### Features
+
+* **proxy:** reverse-proxy Apache (assets WordPress réels + en-têtes/erreurs authentiques) ([e7c2501](https://github.com/mathiscapart/LaRuche/commit/e7c25013785c3e9fdb9b49d343e79418cbe83b20))
+* **proxy:** route honeypot-http derrière le reverse-proxy Apache (compose + CI build) ([fc6f87d](https://github.com/mathiscapart/LaRuche/commit/fc6f87d987f378fb10749c24b21abe0609c1983e))
+
 # 1.0.0 (2026-06-12)
 
 
